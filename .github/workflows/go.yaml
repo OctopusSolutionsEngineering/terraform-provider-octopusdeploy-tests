@@ -1,0 +1,71 @@
+name: Go Build
+'on':
+  workflow_dispatch: {}
+  push: {}
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: '0'
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ^1.20
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v0.9.15
+        with:
+          versionSpec: 5.x
+      - id: determine_version
+        name: Determine Version
+        uses: gittools/actions/gitversion/execute@v0.9.15
+        with:
+          additionalArguments: /overrideconfig mode=Mainline
+      - name: Install Octopus Deploy CLI
+        uses: OctopusDeploy/install-octopus-cli-action@v1
+        with:
+          version: latest
+      - name: Install Dependencies
+        run: go get ./...
+        shell: bash
+      - name: List Dependencies
+        run: go list > dependencies.txt
+        shell: bash
+      - name: Collect Dependencies
+        uses: actions/upload-artifact@v2
+        with:
+          name: Dependencies
+          path: dependencies.txt
+      - name: List Dependency Updates
+        run: go list -u -m -f "{{if .Update}}{{.}}{{end}}" all > dependencyUpdates.txt
+        shell: bash
+      - name: Collect Dependency Updates
+        uses: actions/upload-artifact@v2
+        with:
+          name: Dependencies Updates
+          path: dependencyUpdates.txt
+      - run: go test -c -o integration_test
+      - id: create_release
+        name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.determine_version.outputs.semVer }}+run${{ github.run_number }}-attempt${{ github.run_attempt }}
+          release_name: Release ${{ steps.determine_version.outputs.semVer }} Run ${{ github.run_number }} Attempt ${{ github.run_attempt }}
+          draft: 'false'
+          prerelease: 'false'
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: integration_test
+          asset_name: integration_test
+          asset_content_type: application/octet-stream
+permissions:
+  id-token: write
+  checks: write
+  contents: write

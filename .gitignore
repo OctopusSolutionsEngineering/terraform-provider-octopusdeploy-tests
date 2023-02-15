@@ -13,3 +13,35 @@
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+
+integration_test
+# Terraform
+.terraform/
+terraform.*
+*.tfstate
+*.tfstate.backup
+crash.log
+tflog.txt
+
+# TF Binaries
+terraform-provider-octopusdeploy
+terraform-provider-octopusdeploy.exe
+
+# Commenting the below because I wasn't able to save my main.tf configs for examples
+#main.tf
+artifacts/
+build/
+vendor/
+.release/
+*.tfplan
+
+node_modules/
+.env
+
+examples/provider.tf
+
+# goreleaser
+dist/
+
+terraform-provider-octopusdeploy
+main
