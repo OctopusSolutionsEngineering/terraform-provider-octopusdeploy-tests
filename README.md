@@ -1,5 +1,12 @@
-To test the Octopus Terraform provider locally, save the following into a failed called ~/.terraformrc, replacing
-/var/home/yourname/Code/terraform-provider-octopusdeploy with the directory containing your clone
+This project includes a battery of tests that run the [Octopus Terraform provider](https://registry.terraform.io/providers/OctopusDeployLabs/octopusdeploy/latest/docs)
+against a live instance of Octopus inside a container.
+
+Each directory under `test/terraform` is a self-contained Terraform project deploying one of the resources exposed
+by the Terraform provider (and whatever supporting resources are required). The test then uses the Octopus client
+to query the Octopus instance and verify the appropriate changes were implemented.
+
+To test the Octopus Terraform provider locally, save the following into a failed called `~/.terraformrc`, replacing
+`/var/home/yourname/Code/terraform-provider-octopusdeploy` with the directory containing your clone
 of the git repo:
 
     provider_installation {
