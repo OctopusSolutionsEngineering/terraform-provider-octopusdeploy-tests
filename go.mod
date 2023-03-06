@@ -6,7 +6,7 @@ require (
 	github.com/OctopusDeploy/go-octopusdeploy/v2 v2.21.0
 	github.com/avast/retry-go/v4 v4.3.3
 	github.com/google/uuid v1.3.0
-	github.com/mcasperson/OctopusTerraformTestFramework v0.0.0-20230306001854-4c33e87abe9b
+	github.com/mcasperson/OctopusTerraformTestFramework v0.0.0-20230306003957-3b6ea8a8f772
 	github.com/testcontainers/testcontainers-go v0.18.0
 	k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b
 )
