@@ -65,7 +65,7 @@ func TestSpaceResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/1-singlespace", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/1-singlespace", []string{})
 
 		if err != nil {
 			return err
@@ -110,7 +110,7 @@ func TestProjectGroupResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/2-projectgroup", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/2-projectgroup", []string{})
 
 		if err != nil {
 			return err
@@ -147,7 +147,7 @@ func TestAwsAccountExport(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/3-awsaccount", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/3-awsaccount", []string{})
 
 		if err != nil {
 			return err
@@ -184,7 +184,7 @@ func TestAzureAccountResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/4-azureaccount", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/4-azureaccount", []string{})
 
 		if err != nil {
 			return err
@@ -233,7 +233,7 @@ func TestUsernamePasswordAccountResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/5-userpassaccount", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/5-userpassaccount", []string{})
 
 		if err != nil {
 			return err
@@ -286,7 +286,7 @@ func TestGcpAccountResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/6-gcpaccount", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/6-gcpaccount", []string{})
 
 		if err != nil {
 			return err
@@ -335,7 +335,7 @@ func TestSshAccountResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/7-sshaccount", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/7-sshaccount", []string{})
 
 		if err != nil {
 			return err
@@ -392,7 +392,7 @@ func TestAzureSubscriptionAccountResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/8-azuresubscriptionaccount", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/8-azuresubscriptionaccount", []string{})
 
 		if err != nil {
 			return err
@@ -441,7 +441,7 @@ func TestTokenAccountResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/9-tokenaccount", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/9-tokenaccount", []string{})
 
 		if err != nil {
 			return err
@@ -494,7 +494,7 @@ func TestHelmFeedResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/10-helmfeed", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/10-helmfeed", []string{})
 
 		if err != nil {
 			return err
@@ -555,7 +555,7 @@ func TestDockerFeedResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/11-dockerfeed", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/11-dockerfeed", []string{})
 
 		if err != nil {
 			return err
@@ -629,7 +629,7 @@ func TestEcrFeedResource(t *testing.T) {
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
 
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/12-ecrfeed", []string{
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/12-ecrfeed", []string{
 			"-var=feed_ecr_access_key=" + os.Getenv("ECR_ACCESS_KEY"),
 			"-var=feed_ecr_secret_key=" + os.Getenv("ECR_SECRET_KEY"),
 		})
@@ -693,7 +693,7 @@ func TestMavenFeedResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/13-mavenfeed", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/13-mavenfeed", []string{})
 
 		if err != nil {
 			return err
@@ -762,7 +762,7 @@ func TestNugetFeedResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/14-nugetfeed", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/14-nugetfeed", []string{})
 
 		if err != nil {
 			return err
@@ -835,7 +835,7 @@ func TestWorkerPoolResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/15-workerpool", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/15-workerpool", []string{})
 
 		if err != nil {
 			return err
@@ -884,7 +884,7 @@ func TestEnvironmentResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/16-environment", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/16-environment", []string{})
 
 		if err != nil {
 			return err
@@ -929,7 +929,7 @@ func TestLifecycleResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/17-lifecycle", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/17-lifecycle", []string{})
 
 		if err != nil {
 			return err
@@ -990,7 +990,7 @@ func TestVariableSetResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/18-variableset", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/18-variableset", []string{})
 
 		if err != nil {
 			return err
@@ -1057,7 +1057,7 @@ func TestProjectResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/19-project", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/19-project", []string{})
 
 		if err != nil {
 			return err
@@ -1134,7 +1134,7 @@ func TestProjectChannelResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/20-channel", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/20-channel", []string{})
 
 		if err != nil {
 			return err
@@ -1191,7 +1191,7 @@ func TestTagSetResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/21-tagset", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/21-tagset", []string{})
 
 		if err != nil {
 			return err
@@ -1255,7 +1255,7 @@ func TestGitCredentialsResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		_, err := testFramework.Act(t, container, "./test/terraform/22-gitcredentialtest", []string{})
+		_, err := testFramework.Act(t, container, "./terraform/22-gitcredentialtest", []string{})
 
 		if err != nil {
 			return err
@@ -1272,7 +1272,7 @@ func TestScriptModuleResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/23-scriptmodule", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/23-scriptmodule", []string{})
 
 		if err != nil {
 			return err
@@ -1363,7 +1363,7 @@ func TestTenantsResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/24-tenants", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/24-tenants", []string{})
 
 		if err != nil {
 			return err
@@ -1414,7 +1414,7 @@ func TestCertificateResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/25-certificates", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/25-certificates", []string{})
 
 		if err != nil {
 			return err
@@ -1471,7 +1471,7 @@ func TestTenantVariablesResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/26-tenant_variables", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/26-tenant_variables", []string{})
 
 		if err != nil {
 			return err
@@ -1515,7 +1515,7 @@ func TestMachinePolicyResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/27-machinepolicy", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/27-machinepolicy", []string{})
 
 		if err != nil {
 			return err
@@ -1624,7 +1624,7 @@ func TestProjectTriggerResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/28-projecttrigger", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/28-projecttrigger", []string{})
 
 		if err != nil {
 			return err
@@ -1671,7 +1671,7 @@ func TestK8sTargetResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/29-k8starget", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/29-k8starget", []string{})
 
 		if err != nil {
 			return err
@@ -1708,7 +1708,7 @@ func TestSshTargetResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/30-sshtarget", []string{
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/30-sshtarget", []string{
 			"-var=account_ec2_sydney=LS0tLS1CRUdJTiBFTkNSWVBURUQgUFJJVkFURSBLRVktLS0tLQpNSUlKbkRCT0Jna3Foa2lHOXcwQkJRMHdRVEFwQmdrcWhraUc5dzBCQlF3d0hBUUlwNEUxV1ZrejJEd0NBZ2dBCk1Bd0dDQ3FHU0liM0RRSUpCUUF3RkFZSUtvWklodmNOQXdjRUNIemFuVE1QbHA4ZkJJSUpTSncrdW5BL2ZaVFUKRGdrdWk2QnhOY0REUFg3UHZJZmNXU1dTc3V3YWRhYXdkVEdjY1JVd3pGNTNmRWJTUXJBYzJuWFkwUWVVcU1wcAo4QmdXUUthWlB3MEdqck5OQVJaTy9QYklxaU5ERFMybVRSekZidzREcFY5aDdlblZjL1ZPNlhJdzlxYVYzendlCnhEejdZSkJ2ckhmWHNmTmx1blErYTZGdlRUVkVyWkE1Ukp1dEZUVnhUWVR1Z3lvWWNXZzAzQWlsMDh3eDhyTHkKUkgvTjNjRlEzaEtLcVZuSHQvdnNZUUhTMnJJYkt0RTluelFPWDRxRDdVYXM3Z0c0L2ZkcmZQZjZFWTR1aGpBcApUeGZRTDUzcTBQZG85T09MZlRReFRxakVNaFpidjV1aEN5d0N2VHdWTmVLZ2MzN1pqdDNPSjI3NTB3U2t1TFZvCnllR0VaQmtML1VONjJjTUJuYlFsSTEzR2FXejBHZ0NJNGkwS3UvRmE4aHJZQTQwcHVFdkEwZFBYcVFGMDhYbFYKM1RJUEhGRWdBWlJpTmpJWmFyQW00THdnL1F4Z203OUR1SVM3VHh6RCtpN1pNSmsydjI1ck14Ly9MMXNNUFBtOQpWaXBwVnpLZmpqRmpwTDVjcVJucC9UdUZSVWpHaDZWMFBXVVk1eTVzYjJBWHpuSGZVd1lqeFNoUjBKWXpXejAwCjNHbklwNnlJa1UvL3dFVGJLcVliMjd0RjdETm1WMUxXQzl0ell1dm4yK2EwQkpnU0Jlc3c4WFJ1WWorQS92bVcKWk1YbkF2anZXR3RBUzA4d0ZOV3F3QUtMbzJYUHBXWGVMa3BZUHo1ZnY2QnJaNVNwYTg4UFhsa1VmOVF0VHRobwprZFlGOWVMdk5hTXpSSWJhbmRGWjdLcHUvN2I3L0tDWE9rMUhMOUxvdEpwY2tJdTAxWS81TnQwOHp5cEVQQ1RzClVGWG5DODNqK2tWMktndG5XcXlEL2k3Z1dwaHJSK0IrNE9tM3VZU1RuY042a2d6ZkV3WldpUVA3ZkpiNlYwTHoKc29yU09sK2g2WDRsMC9oRVdScktVQTBrOXpPZU9TQXhlbmpVUXFReWdUd0RqQTJWbTdSZXI2ZElDMVBwNmVETgpBVEJ0ME1NZjJJTytxbTJtK0VLd1FVSXY4ZXdpdEpab016MFBaOHB6WEM0ZFMyRTErZzZmbnE2UGJ5WWRISDJnCmVraXk4Y2duVVJmdHJFaVoyMUxpMWdpdTJaeVM5QUc0Z1ZuT0E1Y05oSzZtRDJUaGl5UUl2M09yUDA0aDFTNlEKQUdGeGJONEhZK0tCYnVITTYwRG1PQXR5c3o4QkJheHFwWjlXQkVhV01ubFB6eEI2SnFqTGJrZ1BkQ2wycytUWAphcWx0UDd6QkpaenVTeVNQc2tQR1NBREUvaEF4eDJFM1RQeWNhQlhQRVFUM2VkZmNsM09nYXRmeHBSYXJLV09PCnFHM2lteW42ZzJiNjhWTlBDSnBTYTNKZ1Axb0NNVlBpa2RCSEdSVUV3N2dXTlJVOFpXRVJuS292M2c0MnQ4dkEKU2Z0a3VMdkhoUnlPQW91SUVsNjJIems0WC9CeVVOQ2J3MW50RzFQeHpSaERaV2dPaVhPNi94WFByRlpKa3BtcQpZUUE5dW83OVdKZy9zSWxucFJCdFlUbUh4eU9mNk12R2svdXlkZExkcmZ6MHB6QUVmWm11YTVocWh5M2Y4YlNJCmpxMlJwUHE3eHJ1Y2djbFAwTWFjdHkrbm9wa0N4M0lNRUE4NE9MQ3dxZjVtemtwY0U1M3hGaU1hcXZTK0dHZmkKZlZnUGpXTXRzMFhjdEtCV2tUbVFFN3MxSE5EV0g1dlpJaDY2WTZncXR0cjU2VGdtcHRLWHBVdUJ1MEdERFBQbwp1aGI4TnVRRjZwNHNoM1dDbXlzTU9uSW5jaXRxZWE4NTFEMmloK2lIY3VqcnJidkVYZGtjMnlxUHBtK3Q3SXBvCm1zWkxVemdXRlZpNWY3KzZiZU56dGJ3T2tmYmdlQVAyaklHTzdtR1pKWWM0L1d1eXBqeVRKNlBQVC9IMUc3K3QKUTh5R3FDV3BzNFdQM2srR3hrbW90cnFROFcxa0J1RDJxTEdmSTdMMGZUVE9lWk0vQUZ1VDJVSkcxKzQ2czJVVwp2RlF2VUJmZ0dTWlh3c1VUeGJRTlZNaTJib1BCRkNxbUY2VmJTcmw2YVgrSm1NNVhySUlqUUhGUFZWVGxzeUtpClVDUC9PQTJOWlREdW9IcC9EM0s1Qjh5MlIyUTlqZlJ0RkcwL0dnMktCbCtObzdTbXlPcWlsUlNkZ1VJb0p5QkcKRGovZXJ4ZkZNMlc3WTVsNGZ2ZlNpdU1OZmlUTVdkY3cxSStnVkpGMC9mTHRpYkNoUlg0OTlIRWlXUHZkTGFKMwppcDJEYU9ReS9QZG5zK3hvaWlMNWtHV25BVUVwanNjWno0YU5DZFowOXRUb1FhK2RZd3g1R1ovNUtmbnVpTURnClBrWjNXalFpOVlZRWFXbVIvQ2JmMjAyRXdoNjdIZzVqWE5kb0RNendXT0V4RFNkVFFYZVdzUUI0LzNzcjE2S2MKeitGN2xhOXhHVEVhTDllQitwcjY5L2JjekJLMGVkNXUxYUgxcXR3cjcrMmliNmZDdlMyblRGQTM1ZG50YXZlUwp4VUJVZ0NzRzVhTTl4b2pIQ0o4RzRFMm9iRUEwUDg2SFlqZEJJSXF5U0txZWtQYmFybW4xR1JrdUVlbU5hTVdyCkM2bWZqUXR5V2ZMWnlSbUlhL1dkSVgzYXhqZHhYa3kydm4yNVV6MXZRNklrNnRJcktPYUJnRUY1cmYwY014dTUKN1BYeTk0dnc1QjE0Vlcra2JqQnkyY3hIajJhWnJEaE53UnVQNlpIckg5MHZuN2NmYjYwU0twRWxxdmZwdlN0VQpvQnVXQlFEUUE3bHpZajhhT3BHend3LzlYTjI5MGJrUnd4elVZRTBxOVl4bS9VSHJTNUlyRWtKSml2SUlEb3hICjF4VTVLd2ErbERvWDJNcERrZlBQVE9XSjVqZG8wbXNsN0dBTmc1WGhERnBpb2hFMEdSS2lGVytYcjBsYkJKU2oKUkxibytrbzhncXU2WHB0OWU4U0Y5OEJ4bFpEcFBVMG5PcGRrTmxwTVpKYVlpaUUzRjRFRG9DcE56bmxpY2JrcApjZ2FrcGVrbS9YS21RSlJxWElXci8wM29SdUVFTXBxZzlRbjdWRG8zR0FiUTlnNUR5U1Bid0xvT25xQ0V3WGFJCkF6alFzWU4rc3VRd2FqZHFUcEthZ1FCbWRaMmdNZDBTMTV1Ukt6c2wxOHgzK1JabmRiNWoxNjNuV0NkMlQ5VDgKald3NURISDgvVUFkSGZoOHh0RTJ6bWRHbEg5T3I5U2hIMzViMWgxVm8rU2pNMzRPeWpwVjB3TmNVL1psOTBUdAp1WnJwYnBwTXZCZUVmRzZTczVXVGhySm9LaGl0RkNwWlVqaDZvdnk3Mzd6ditKaUc4aDRBNG1GTmRPSUtBd0I0Cmp2Nms3V3poUVlEa2Q0ZXRoajNndVJCTGZQNThNVEJKaWhZemVINkUzclhjSGE5b0xnREgzczd4bU8yVEtUY24Kd3VIM3AvdC9WWFN3UGJ0QXBXUXdTRFNKSnA5WkF4S0Q1eVdmd3lTU2ZQVGtwM2c1b2NmKzBhSk1Kc2FkU3lwNQpNR1Vic1oxd1hTN2RXMDhOYXZ2WmpmbElNUm8wUFZDbkRVcFp1bjJuekhTRGJDSjB1M0ZYd1lFQzFFejlJUnN0ClJFbDdpdTZQRlVMSldSU0V0SzBKY1lLS0ltNXhQWHIvbTdPc2duMUNJL0F0cTkrWEFjODk1MGVxeTRwTFVQYkYKZkhFOFhVYWFzUU82MDJTeGpnOTZZaWJ3ZnFyTDF2Vjd1MitUYzJleUZ1N3oxUGRPZDQyWko5M2wvM3lOUW92egora0JuQVdObzZ3WnNKSitHNDZDODNYRVBLM0h1bGw1dFg2UDU4NUQ1b3o5U1oyZGlTd1FyVFN1THVSL0JCQUpVCmd1K2FITkJGRmVtUXNEL2QxMllud1h3d3FkZXVaMDVmQlFiWUREdldOM3daUjJJeHZpd1E0bjZjZWl3OUZ4QmcKbWlzMFBGY2NZOWl0SnJrYXlWQVVZUFZ3Sm5XSmZEK2pQNjJ3UWZJWmhhbFQrZDJpUzVQaDEwdWlMNHEvY1JuYgo1c1Mvc2o0Tm5QYmpxc1ZmZWlKTEh3PT0KLS0tLS1FTkQgRU5DUllQVEVEIFBSSVZBVEUgS0VZLS0tLS0K",
 			"-var=account_ec2_sydney_cert=whatever",
 		})
@@ -1752,7 +1752,7 @@ func TestListeningTargetResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/31-listeningtarget", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/31-listeningtarget", []string{})
 
 		if err != nil {
 			return err
@@ -1805,7 +1805,7 @@ func TestPollingTargetResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/32-pollingtarget", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/32-pollingtarget", []string{})
 
 		if err != nil {
 			return err
@@ -1858,7 +1858,7 @@ func TestCloudRegionTargetResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/33-cloudregiontarget", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/33-cloudregiontarget", []string{})
 
 		if err != nil {
 			return err
@@ -1903,7 +1903,7 @@ func TestOfflineDropTargetResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/34-offlinedroptarget", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/34-offlinedroptarget", []string{})
 
 		if err != nil {
 			return err
@@ -1959,7 +1959,7 @@ func TestAzureCloudServiceTargetResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/35-azurecloudservicetarget", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/35-azurecloudservicetarget", []string{})
 
 		if err != nil {
 			return err
@@ -2016,7 +2016,7 @@ func TestAzureServiceFabricTargetResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/36-servicefabrictarget", []string{
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/36-servicefabrictarget", []string{
 			"-var=target_service_fabric=whatever",
 		})
 
@@ -2075,7 +2075,7 @@ func TestAzureWebAppTargetResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/37-webapptarget", []string{
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/37-webapptarget", []string{
 			"-var=account_sales_account=whatever",
 		})
 
@@ -2142,7 +2142,7 @@ func TestProjectWithGitUsernameExport(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		_, err := testFramework.Act(t, container, "./test/terraform/39-projectgitusername", []string{
+		_, err := testFramework.Act(t, container, "./terraform/39-projectgitusername", []string{
 			"-var=project_git_password=" + os.Getenv("GIT_CREDENTIAL"),
 			"-var=project_git_username=" + os.Getenv("GIT_USERNAME"),
 		})
@@ -2162,7 +2162,7 @@ func TestProjectWithDollarSignsExport(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/40-escapedollar", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/40-escapedollar", []string{})
 
 		if err != nil {
 			return err
@@ -2195,7 +2195,7 @@ func TestProjectTerraformInlineScriptExport(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/41-terraforminlinescript", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/41-terraforminlinescript", []string{})
 
 		if err != nil {
 			return err
@@ -2235,7 +2235,7 @@ func TestProjectTerraformPackageScriptExport(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/42-terraformpackagescript", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform/42-terraformpackagescript", []string{})
 
 		if err != nil {
 			return err
