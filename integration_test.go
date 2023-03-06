@@ -35,8 +35,6 @@ package main
 */
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/accounts"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/certificates"
@@ -54,407 +52,27 @@ import (
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/tenants"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/variables"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/workerpools"
-	"github.com/avast/retry-go/v4"
-	"github.com/google/uuid"
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/wait"
+	"github.com/mcasperson/OctopusTerraformTestFramework/octoclient"
+	"github.com/mcasperson/OctopusTerraformTestFramework/test"
 	"k8s.io/utils/strings/slices"
-	"net/http"
-	"net/url"
 	"os"
-	"os/exec"
-	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 )
-
-const ApiKey = "API-ABCDEFGHIJKLMNOPQURTUVWXYZ12345"
-
-type octopusContainer struct {
-	testcontainers.Container
-	URI string
-}
-
-type mysqlContainer struct {
-	testcontainers.Container
-	port string
-	ip   string
-}
-
-type TestLogConsumer struct {
-}
-
-func (g *TestLogConsumer) Accept(l testcontainers.Log) {
-	fmt.Println(string(l.Content))
-}
-
-func enableContainerLogging(container testcontainers.Container, ctx context.Context) error {
-	// Display the container logs
-	err := container.StartLogProducer(ctx)
-	if err != nil {
-		return err
-	}
-	g := TestLogConsumer{}
-	container.FollowOutput(&g)
-	return nil
-}
-
-// getReaperSkipped will return true if running in a podman environment
-func getReaperSkipped() bool {
-	if strings.Contains(os.Getenv("DOCKER_HOST"), "podman") {
-		return true
-	}
-
-	return false
-}
-
-// getProvider returns the test containers provider
-func getProvider() testcontainers.ProviderType {
-	if strings.Contains(os.Getenv("DOCKER_HOST"), "podman") {
-		return testcontainers.ProviderPodman
-	}
-
-	return testcontainers.ProviderDocker
-}
-
-// setupNetwork creates an internal network for Octopus and MS SQL
-func setupNetwork(ctx context.Context) (testcontainers.Network, error) {
-	return testcontainers.GenericNetwork(ctx, testcontainers.GenericNetworkRequest{
-		NetworkRequest: testcontainers.NetworkRequest{
-			Name:           "octopusterraformtests",
-			CheckDuplicate: false,
-			SkipReaper:     getReaperSkipped(),
-		},
-		ProviderType: getProvider(),
-	})
-}
-
-// setupDatabase creates a MSSQL container
-func setupDatabase(ctx context.Context) (*mysqlContainer, error) {
-	req := testcontainers.ContainerRequest{
-		Image:        "mcr.microsoft.com/mssql/server",
-		ExposedPorts: []string{"1433/tcp"},
-		Env: map[string]string{
-			"ACCEPT_EULA": "Y",
-			"SA_PASSWORD": "Password01!",
-		},
-		WaitingFor: wait.ForExec([]string{"/opt/mssql-tools/bin/sqlcmd", "-U", "sa", "-P", "Password01!", "-Q", "select 1"}).WithExitCodeMatcher(
-			func(exitCode int) bool {
-				return exitCode == 0
-			}),
-		SkipReaper: getReaperSkipped(),
-		Networks: []string{
-			"octopusterraformtests",
-		},
-	}
-	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: req,
-		Started:          true,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	ip, err := container.Host(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	mappedPort, err := container.MappedPort(ctx, "1433")
-	if err != nil {
-		return nil, err
-	}
-
-	return &mysqlContainer{
-		Container: container,
-		ip:        ip,
-		port:      mappedPort.Port(),
-	}, nil
-}
-
-// setupOctopus creates an Octopus container
-func setupOctopus(ctx context.Context, connString string) (*octopusContainer, error) {
-	if os.Getenv("LICENSE") == "" {
-		return nil, errors.New("the LICENSE environment variable must be set to a base 64 encoded Octopus license key")
-	}
-
-	req := testcontainers.ContainerRequest{
-		// Be aware that later versions of Octopus killed Github Actions.
-		// I think maybe they used more memory? 2022.2 works fine though.
-		Image:        "octopusdeploy/octopusdeploy:latest",
-		ExposedPorts: []string{"8080/tcp"},
-		Env: map[string]string{
-			"ACCEPT_EULA":                   "Y",
-			"DB_CONNECTION_STRING":          connString,
-			"ADMIN_API_KEY":                 ApiKey,
-			"DISABLE_DIND":                  "Y",
-			"ADMIN_USERNAME":                "admin",
-			"ADMIN_PASSWORD":                "Password01!",
-			"OCTOPUS_SERVER_BASE64_LICENSE": os.Getenv("LICENSE"),
-		},
-		Privileged: false,
-		WaitingFor: wait.ForLog("Listening for HTTP requests on").WithStartupTimeout(30 * time.Minute),
-		SkipReaper: getReaperSkipped(),
-		Networks: []string{
-			"octopusterraformtests",
-		},
-	}
-	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: req,
-		Started:          true,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	// Display the container logs
-	enableContainerLogging(container, ctx)
-
-	ip, err := container.Host(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	mappedPort, err := container.MappedPort(ctx, "8080")
-	if err != nil {
-		return nil, err
-	}
-
-	uri := fmt.Sprintf("http://%s:%s", ip, mappedPort.Port())
-
-	return &octopusContainer{Container: container, URI: uri}, nil
-}
-
-// arrangeTest is wrapper that initialises Octopus, runs a test, and cleans up the containers
-func arrangeTest(t *testing.T, testFunc func(t *testing.T, container *octopusContainer) error) {
-	err := retry.Do(
-		func() error {
-
-			if testing.Short() {
-				t.Skip("skipping integration test")
-			}
-
-			ctx := context.Background()
-
-			network, err := setupNetwork(ctx)
-			if err != nil {
-				return err
-			}
-
-			sqlServer, err := setupDatabase(ctx)
-			if err != nil {
-				return err
-			}
-
-			sqlIp, err := sqlServer.Container.ContainerIP(ctx)
-			if err != nil {
-				return err
-			}
-
-			t.Log("SQL Server IP: " + sqlIp)
-
-			octopusContainer, err := setupOctopus(ctx, "Server="+sqlIp+",1433;Database=OctopusDeploy;User=sa;Password=Password01!")
-			if err != nil {
-				return err
-			}
-
-			// Clean up the container after the test is complete
-			defer func() {
-				// This fixes the "can not get logs from container which is dead or marked for removal" error
-				// See https://github.com/testcontainers/testcontainers-go/issues/606
-				octopusContainer.StopLogProducer()
-
-				octoTerminateErr := octopusContainer.Terminate(ctx)
-				sqlTerminateErr := sqlServer.Terminate(ctx)
-
-				networkErr := network.Remove(ctx)
-
-				if octoTerminateErr != nil || sqlTerminateErr != nil || networkErr != nil {
-					t.Fatalf("failed to terminate container: %v %v", octoTerminateErr, sqlTerminateErr)
-				}
-			}()
-
-			// give the server 5 minutes to start up
-			success := false
-			for start := time.Now(); ; {
-				if time.Since(start) > 5*time.Minute {
-					break
-				}
-
-				resp, err := http.Get(octopusContainer.URI + "/api")
-				if err == nil && resp.StatusCode == http.StatusOK {
-					success = true
-					t.Log("Successfully contacted the Octopus API")
-					break
-				}
-
-				time.Sleep(10 * time.Second)
-			}
-
-			if !success {
-				t.Fatalf("Failed to access the Octopus API")
-			}
-
-			return testFunc(t, octopusContainer)
-		},
-		retry.Attempts(3),
-	)
-
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-}
-
-// initialiseOctopus uses Terraform to populate the test Octopus instance, making sure to clean up
-// any files generated during previous Terraform executions to avoid conflicts and locking issues.
-func initialiseOctopus(t *testing.T, container *octopusContainer, terraformDir string, spaceName string, initialiseVars []string, populateVars []string) error {
-	path, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-	t.Log("Working dir: " + path)
-
-	// This test creates a new space and then populates the space.
-	terraformProjectDirs := []string{}
-	terraformProjectDirs = append(terraformProjectDirs, filepath.Join("test", "terraform", "1-singlespace"))
-	terraformProjectDirs = append(terraformProjectDirs, filepath.Join(terraformDir))
-
-	// First loop initialises the new space, second populates the space
-	spaceId := "Spaces-1"
-	for i, terraformProjectDir := range terraformProjectDirs {
-
-		os.Remove(filepath.Join(terraformProjectDir, ".terraform.lock.hcl"))
-		os.Remove(filepath.Join(terraformProjectDir, "terraform.tfstate"))
-
-		args := []string{"init", "-no-color"}
-		cmnd := exec.Command("terraform", args...)
-		cmnd.Dir = terraformProjectDir
-		out, err := cmnd.Output()
-
-		if err != nil {
-			exitError, ok := err.(*exec.ExitError)
-			if ok {
-				t.Log(string(exitError.Stderr))
-			} else {
-				t.Log(err.Error())
-			}
-
-			return err
-		}
-
-		t.Log(string(out))
-
-		// when initialising the new space, we need to define a new space name as a variable
-		vars := []string{}
-		if i == 0 {
-			vars = append(initialiseVars, "-var=octopus_space_name="+spaceName)
-		} else {
-			vars = populateVars
-		}
-
-		newArgs := append([]string{
-			"apply",
-			"-auto-approve",
-			"-no-color",
-			"-var=octopus_server=" + container.URI,
-			"-var=octopus_apikey=" + ApiKey,
-			"-var=octopus_space_id=" + spaceId,
-		}, vars...)
-
-		cmnd = exec.Command("terraform", newArgs...)
-		cmnd.Dir = terraformProjectDir
-		out, err = cmnd.Output()
-
-		if err != nil {
-			exitError, ok := err.(*exec.ExitError)
-			if ok {
-				t.Log(string(exitError.Stderr))
-			} else {
-				t.Log(err)
-			}
-			return err
-		}
-
-		t.Log(string(out))
-
-		// get the ID of any new space created, which will be used in the subsequent Terraform executions
-		spaceId, err = getOutputVariable(t, terraformProjectDir, "octopus_space_id")
-
-		if err != nil {
-			exitError, ok := err.(*exec.ExitError)
-			if ok {
-				t.Log(string(exitError.Stderr))
-			} else {
-				t.Log(err)
-			}
-			return err
-		}
-	}
-
-	return nil
-}
-
-// getOutputVariable reads a Terraform output variable
-func getOutputVariable(t *testing.T, terraformDir string, outputVar string) (string, error) {
-	cmnd := exec.Command(
-		"terraform",
-		"output",
-		"-raw",
-		outputVar)
-	cmnd.Dir = terraformDir
-	out, err := cmnd.Output()
-
-	if err != nil {
-		exitError, ok := err.(*exec.ExitError)
-		if ok {
-			t.Log(string(exitError.Stderr))
-		} else {
-			t.Log(err)
-		}
-		return "", err
-	}
-
-	return string(out), nil
-}
-
-// createClient creates a Octopus client to the given url
-func createClient(uri string, spaceId string) (*client.Client, error) {
-	url, err := url.Parse(uri)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return client.NewClient(nil, url, ApiKey, spaceId)
-}
-
-// act initialises Octopus and MSSQL
-func act(t *testing.T, container *octopusContainer, terraformDir string, populateVars []string) (string, error) {
-	t.Log("POPULATING TEST SPACE")
-
-	spaceName := strings.ReplaceAll(fmt.Sprint(uuid.New()), "-", "")[:20]
-	err := initialiseOctopus(t, container, terraformDir, spaceName, []string{}, populateVars)
-
-	if err != nil {
-		return "", err
-	}
-
-	return getOutputVariable(t, filepath.Join("test", "terraform", "1-singlespace"), "octopus_space_id")
-}
 
 // TestSpaceResource verifies that a space can be reimported with the correct settings
 func TestSpaceResource(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/1-singlespace", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/1-singlespace", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, "")
+		client, err := octoclient.CreateClient(container.URI, "", test.ApiKey)
 		query := spaces.SpacesQuery{
 			IDs:  []string{newSpaceId},
 			Skip: 0,
@@ -489,16 +107,17 @@ func TestSpaceResource(t *testing.T) {
 
 // TestProjectGroupResource verifies that a project group can be reimported with the correct settings
 func TestProjectGroupResource(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/2-projectgroup", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/2-projectgroup", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := projectgroups.ProjectGroupsQuery{
 			PartialName: "Test",
 			Skip:        0,
@@ -525,16 +144,17 @@ func TestProjectGroupResource(t *testing.T) {
 
 // TestAwsAccountExport verifies that an AWS account can be reimported with the correct settings
 func TestAwsAccountExport(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/3-awsaccount", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/3-awsaccount", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := accounts.AccountsQuery{
 			PartialName: "AWS Account",
 			Skip:        0,
@@ -561,16 +181,17 @@ func TestAwsAccountExport(t *testing.T) {
 
 // TestAzureAccountResource verifies that an Azure account can be reimported with the correct settings
 func TestAzureAccountResource(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/4-azureaccount", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/4-azureaccount", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := accounts.AccountsQuery{
 			PartialName: "Azure",
 			Skip:        0,
@@ -609,16 +230,17 @@ func TestAzureAccountResource(t *testing.T) {
 
 // TestUsernamePasswordAccountResource verifies that a username/password account can be reimported with the correct settings
 func TestUsernamePasswordAccountResource(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/5-userpassaccount", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/5-userpassaccount", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := accounts.AccountsQuery{
 			PartialName: "GKE",
 			Skip:        0,
@@ -661,16 +283,17 @@ func TestUsernamePasswordAccountResource(t *testing.T) {
 
 // TestGcpAccountResource verifies that a GCP account can be reimported with the correct settings
 func TestGcpAccountResource(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/6-gcpaccount", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/6-gcpaccount", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := accounts.AccountsQuery{
 			PartialName: "Google",
 			Skip:        0,
@@ -709,16 +332,17 @@ func TestGcpAccountResource(t *testing.T) {
 
 // TestSshAccountResource verifies that an SSH account can be reimported with the correct settings
 func TestSshAccountResource(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/7-sshaccount", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/7-sshaccount", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := accounts.AccountsQuery{
 			PartialName: "SSH",
 			Skip:        0,
@@ -765,16 +389,17 @@ func TestAzureSubscriptionAccountResource(t *testing.T) {
 	// I could not figure out a combination of properties that made this resource work
 	return
 
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/8-azuresubscriptionaccount", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/8-azuresubscriptionaccount", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := accounts.AccountsQuery{
 			PartialName: "Subscription",
 			Skip:        0,
@@ -813,16 +438,17 @@ func TestAzureSubscriptionAccountResource(t *testing.T) {
 
 // TestTokenAccountResource verifies that a token account can be reimported with the correct settings
 func TestTokenAccountResource(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/9-tokenaccount", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/9-tokenaccount", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := accounts.AccountsQuery{
 			PartialName: "Token",
 			Skip:        0,
@@ -865,16 +491,17 @@ func TestTokenAccountResource(t *testing.T) {
 
 // TestHelmFeedResource verifies that a helm feed can be reimported with the correct settings
 func TestHelmFeedResource(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/10-helmfeed", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/10-helmfeed", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := feeds.FeedsQuery{
 			PartialName: "Helm",
 			Skip:        0,
@@ -925,16 +552,17 @@ func TestHelmFeedResource(t *testing.T) {
 
 // TestDockerFeedResource verifies that a docker feed can be reimported with the correct settings
 func TestDockerFeedResource(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/11-dockerfeed", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/11-dockerfeed", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := feeds.FeedsQuery{
 			PartialName: "Docker",
 			Skip:        0,
@@ -997,10 +625,11 @@ func TestEcrFeedResource(t *testing.T) {
 		t.Fatal("The ECR_SECRET_KEY environment variable must be set a valid AWS secret key")
 	}
 
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
 
-		newSpaceId, err := act(t, container, "./test/terraform/12-ecrfeed", []string{
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/12-ecrfeed", []string{
 			"-var=feed_ecr_access_key=" + os.Getenv("ECR_ACCESS_KEY"),
 			"-var=feed_ecr_secret_key=" + os.Getenv("ECR_SECRET_KEY"),
 		})
@@ -1010,7 +639,7 @@ func TestEcrFeedResource(t *testing.T) {
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := feeds.FeedsQuery{
 			PartialName: "ECR",
 			Skip:        0,
@@ -1061,16 +690,17 @@ func TestEcrFeedResource(t *testing.T) {
 
 // TestMavenFeedResource verifies that a maven feed can be reimported with the correct settings
 func TestMavenFeedResource(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/13-mavenfeed", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/13-mavenfeed", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := feeds.FeedsQuery{
 			PartialName: "Maven",
 			Skip:        0,
@@ -1129,16 +759,17 @@ func TestMavenFeedResource(t *testing.T) {
 
 // TestNugetFeedResource verifies that a nuget feed can be reimported with the correct settings
 func TestNugetFeedResource(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/14-nugetfeed", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/14-nugetfeed", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := feeds.FeedsQuery{
 			PartialName: "Nuget",
 			Skip:        0,
@@ -1201,16 +832,17 @@ func TestNugetFeedResource(t *testing.T) {
 
 // TestWorkerPoolResource verifies that a static worker pool can be reimported with the correct settings
 func TestWorkerPoolResource(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/15-workerpool", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/15-workerpool", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := workerpools.WorkerPoolsQuery{
 			PartialName: "Docker",
 			Skip:        0,
@@ -1249,16 +881,17 @@ func TestWorkerPoolResource(t *testing.T) {
 
 // TestEnvironmentResource verifies that an environment can be reimported with the correct settings
 func TestEnvironmentResource(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/16-environment", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/16-environment", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := environments.EnvironmentsQuery{
 			PartialName: "Development",
 			Skip:        0,
@@ -1293,16 +926,17 @@ func TestEnvironmentResource(t *testing.T) {
 
 // TestLifecycleResource verifies that a lifecycle can be reimported with the correct settings
 func TestLifecycleResource(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/17-lifecycle", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/17-lifecycle", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := lifecycles.Query{
 			PartialName: "Simple",
 			Skip:        0,
@@ -1353,16 +987,17 @@ func TestLifecycleResource(t *testing.T) {
 
 // TestVariableSetResource verifies that a variable set can be reimported with the correct settings
 func TestVariableSetResource(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/18-variableset", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/18-variableset", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := variables.LibraryVariablesQuery{
 			PartialName: "Test",
 			Skip:        0,
@@ -1419,16 +1054,17 @@ func TestVariableSetResource(t *testing.T) {
 
 // TestProjectResource verifies that a project can be reimported with the correct settings
 func TestProjectResource(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/19-project", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/19-project", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := projects.ProjectsQuery{
 			PartialName: "Test",
 			Skip:        0,
@@ -1495,16 +1131,17 @@ func TestProjectResource(t *testing.T) {
 
 // TestProjectChannelResource verifies that a project channel can be reimported with the correct settings
 func TestProjectChannelResource(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/20-channel", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/20-channel", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := channels.Query{
 			PartialName: "Test",
 			Skip:        0,
@@ -1551,16 +1188,17 @@ func TestProjectChannelResource(t *testing.T) {
 
 // TestTagSetResource verifies that a tag set can be reimported with the correct settings
 func TestTagSetResource(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/21-tagset", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/21-tagset", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := tagsets.TagSetsQuery{
 			PartialName: "tag1",
 			Skip:        0,
@@ -1614,9 +1252,10 @@ func TestTagSetResource(t *testing.T) {
 
 // TestGitCredentialsResource verifies that a git credential can be reimported with the correct settings
 func TestGitCredentialsResource(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		_, err := act(t, container, "./test/terraform/22-gitcredentialtest", []string{})
+		_, err := testFramework.Act(t, container, "./test/terraform/22-gitcredentialtest", []string{})
 
 		if err != nil {
 			return err
@@ -1630,16 +1269,17 @@ func TestGitCredentialsResource(t *testing.T) {
 
 // TestScriptModuleResource verifies that a script module set can be reimported with the correct settings
 func TestScriptModuleResource(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/23-scriptmodule", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/23-scriptmodule", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := variables.LibraryVariablesQuery{
 			PartialName: "Test2",
 			Skip:        0,
@@ -1720,16 +1360,17 @@ func TestScriptModuleResource(t *testing.T) {
 
 // TestTenantsResource verifies that a git credential can be reimported with the correct settings
 func TestTenantsResource(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/24-tenants", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/24-tenants", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := tenants.TenantsQuery{
 			PartialName: "Team A",
 			Skip:        0,
@@ -1770,16 +1411,17 @@ func TestTenantsResource(t *testing.T) {
 
 // TestCertificateResource verifies that a certificate can be reimported with the correct settings
 func TestCertificateResource(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/25-certificates", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/25-certificates", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := certificates.CertificatesQuery{
 			PartialName: "Test",
 			Skip:        0,
@@ -1826,16 +1468,17 @@ func TestCertificateResource(t *testing.T) {
 
 // TestTenantVariablesResource verifies that a tenant variables can be reimported with the correct settings
 func TestTenantVariablesResource(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/26-tenant_variables", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/26-tenant_variables", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		collection, err := client.TenantVariables.GetAll()
 		if err != nil {
 			return err
@@ -1869,16 +1512,17 @@ func TestTenantVariablesResource(t *testing.T) {
 
 // TestMachinePolicyResource verifies that a machine policies can be reimported with the correct settings
 func TestMachinePolicyResource(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/27-machinepolicy", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/27-machinepolicy", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := machines.MachinePoliciesQuery{
 			PartialName: "Testing",
 			Skip:        0,
@@ -1977,16 +1621,17 @@ func TestMachinePolicyResource(t *testing.T) {
 
 // TestProjectTriggerResource verifies that a project trigger can be reimported with the correct settings
 func TestProjectTriggerResource(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/28-projecttrigger", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/28-projecttrigger", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := projects.ProjectsQuery{
 			PartialName: "Test",
 			Skip:        0,
@@ -2023,16 +1668,17 @@ func TestProjectTriggerResource(t *testing.T) {
 
 // TestK8sTargetResource verifies that a k8s machine can be reimported with the correct settings
 func TestK8sTargetResource(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/29-k8starget", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/29-k8starget", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := machines.MachinesQuery{
 			PartialName: "Test",
 			Skip:        0,
@@ -2059,9 +1705,10 @@ func TestK8sTargetResource(t *testing.T) {
 
 // TestSshTargetResource verifies that a ssh machine can be reimported with the correct settings
 func TestSshTargetResource(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/30-sshtarget", []string{
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/30-sshtarget", []string{
 			"-var=account_ec2_sydney=LS0tLS1CRUdJTiBFTkNSWVBURUQgUFJJVkFURSBLRVktLS0tLQpNSUlKbkRCT0Jna3Foa2lHOXcwQkJRMHdRVEFwQmdrcWhraUc5dzBCQlF3d0hBUUlwNEUxV1ZrejJEd0NBZ2dBCk1Bd0dDQ3FHU0liM0RRSUpCUUF3RkFZSUtvWklodmNOQXdjRUNIemFuVE1QbHA4ZkJJSUpTSncrdW5BL2ZaVFUKRGdrdWk2QnhOY0REUFg3UHZJZmNXU1dTc3V3YWRhYXdkVEdjY1JVd3pGNTNmRWJTUXJBYzJuWFkwUWVVcU1wcAo4QmdXUUthWlB3MEdqck5OQVJaTy9QYklxaU5ERFMybVRSekZidzREcFY5aDdlblZjL1ZPNlhJdzlxYVYzendlCnhEejdZSkJ2ckhmWHNmTmx1blErYTZGdlRUVkVyWkE1Ukp1dEZUVnhUWVR1Z3lvWWNXZzAzQWlsMDh3eDhyTHkKUkgvTjNjRlEzaEtLcVZuSHQvdnNZUUhTMnJJYkt0RTluelFPWDRxRDdVYXM3Z0c0L2ZkcmZQZjZFWTR1aGpBcApUeGZRTDUzcTBQZG85T09MZlRReFRxakVNaFpidjV1aEN5d0N2VHdWTmVLZ2MzN1pqdDNPSjI3NTB3U2t1TFZvCnllR0VaQmtML1VONjJjTUJuYlFsSTEzR2FXejBHZ0NJNGkwS3UvRmE4aHJZQTQwcHVFdkEwZFBYcVFGMDhYbFYKM1RJUEhGRWdBWlJpTmpJWmFyQW00THdnL1F4Z203OUR1SVM3VHh6RCtpN1pNSmsydjI1ck14Ly9MMXNNUFBtOQpWaXBwVnpLZmpqRmpwTDVjcVJucC9UdUZSVWpHaDZWMFBXVVk1eTVzYjJBWHpuSGZVd1lqeFNoUjBKWXpXejAwCjNHbklwNnlJa1UvL3dFVGJLcVliMjd0RjdETm1WMUxXQzl0ell1dm4yK2EwQkpnU0Jlc3c4WFJ1WWorQS92bVcKWk1YbkF2anZXR3RBUzA4d0ZOV3F3QUtMbzJYUHBXWGVMa3BZUHo1ZnY2QnJaNVNwYTg4UFhsa1VmOVF0VHRobwprZFlGOWVMdk5hTXpSSWJhbmRGWjdLcHUvN2I3L0tDWE9rMUhMOUxvdEpwY2tJdTAxWS81TnQwOHp5cEVQQ1RzClVGWG5DODNqK2tWMktndG5XcXlEL2k3Z1dwaHJSK0IrNE9tM3VZU1RuY042a2d6ZkV3WldpUVA3ZkpiNlYwTHoKc29yU09sK2g2WDRsMC9oRVdScktVQTBrOXpPZU9TQXhlbmpVUXFReWdUd0RqQTJWbTdSZXI2ZElDMVBwNmVETgpBVEJ0ME1NZjJJTytxbTJtK0VLd1FVSXY4ZXdpdEpab016MFBaOHB6WEM0ZFMyRTErZzZmbnE2UGJ5WWRISDJnCmVraXk4Y2duVVJmdHJFaVoyMUxpMWdpdTJaeVM5QUc0Z1ZuT0E1Y05oSzZtRDJUaGl5UUl2M09yUDA0aDFTNlEKQUdGeGJONEhZK0tCYnVITTYwRG1PQXR5c3o4QkJheHFwWjlXQkVhV01ubFB6eEI2SnFqTGJrZ1BkQ2wycytUWAphcWx0UDd6QkpaenVTeVNQc2tQR1NBREUvaEF4eDJFM1RQeWNhQlhQRVFUM2VkZmNsM09nYXRmeHBSYXJLV09PCnFHM2lteW42ZzJiNjhWTlBDSnBTYTNKZ1Axb0NNVlBpa2RCSEdSVUV3N2dXTlJVOFpXRVJuS292M2c0MnQ4dkEKU2Z0a3VMdkhoUnlPQW91SUVsNjJIems0WC9CeVVOQ2J3MW50RzFQeHpSaERaV2dPaVhPNi94WFByRlpKa3BtcQpZUUE5dW83OVdKZy9zSWxucFJCdFlUbUh4eU9mNk12R2svdXlkZExkcmZ6MHB6QUVmWm11YTVocWh5M2Y4YlNJCmpxMlJwUHE3eHJ1Y2djbFAwTWFjdHkrbm9wa0N4M0lNRUE4NE9MQ3dxZjVtemtwY0U1M3hGaU1hcXZTK0dHZmkKZlZnUGpXTXRzMFhjdEtCV2tUbVFFN3MxSE5EV0g1dlpJaDY2WTZncXR0cjU2VGdtcHRLWHBVdUJ1MEdERFBQbwp1aGI4TnVRRjZwNHNoM1dDbXlzTU9uSW5jaXRxZWE4NTFEMmloK2lIY3VqcnJidkVYZGtjMnlxUHBtK3Q3SXBvCm1zWkxVemdXRlZpNWY3KzZiZU56dGJ3T2tmYmdlQVAyaklHTzdtR1pKWWM0L1d1eXBqeVRKNlBQVC9IMUc3K3QKUTh5R3FDV3BzNFdQM2srR3hrbW90cnFROFcxa0J1RDJxTEdmSTdMMGZUVE9lWk0vQUZ1VDJVSkcxKzQ2czJVVwp2RlF2VUJmZ0dTWlh3c1VUeGJRTlZNaTJib1BCRkNxbUY2VmJTcmw2YVgrSm1NNVhySUlqUUhGUFZWVGxzeUtpClVDUC9PQTJOWlREdW9IcC9EM0s1Qjh5MlIyUTlqZlJ0RkcwL0dnMktCbCtObzdTbXlPcWlsUlNkZ1VJb0p5QkcKRGovZXJ4ZkZNMlc3WTVsNGZ2ZlNpdU1OZmlUTVdkY3cxSStnVkpGMC9mTHRpYkNoUlg0OTlIRWlXUHZkTGFKMwppcDJEYU9ReS9QZG5zK3hvaWlMNWtHV25BVUVwanNjWno0YU5DZFowOXRUb1FhK2RZd3g1R1ovNUtmbnVpTURnClBrWjNXalFpOVlZRWFXbVIvQ2JmMjAyRXdoNjdIZzVqWE5kb0RNendXT0V4RFNkVFFYZVdzUUI0LzNzcjE2S2MKeitGN2xhOXhHVEVhTDllQitwcjY5L2JjekJLMGVkNXUxYUgxcXR3cjcrMmliNmZDdlMyblRGQTM1ZG50YXZlUwp4VUJVZ0NzRzVhTTl4b2pIQ0o4RzRFMm9iRUEwUDg2SFlqZEJJSXF5U0txZWtQYmFybW4xR1JrdUVlbU5hTVdyCkM2bWZqUXR5V2ZMWnlSbUlhL1dkSVgzYXhqZHhYa3kydm4yNVV6MXZRNklrNnRJcktPYUJnRUY1cmYwY014dTUKN1BYeTk0dnc1QjE0Vlcra2JqQnkyY3hIajJhWnJEaE53UnVQNlpIckg5MHZuN2NmYjYwU0twRWxxdmZwdlN0VQpvQnVXQlFEUUE3bHpZajhhT3BHend3LzlYTjI5MGJrUnd4elVZRTBxOVl4bS9VSHJTNUlyRWtKSml2SUlEb3hICjF4VTVLd2ErbERvWDJNcERrZlBQVE9XSjVqZG8wbXNsN0dBTmc1WGhERnBpb2hFMEdSS2lGVytYcjBsYkJKU2oKUkxibytrbzhncXU2WHB0OWU4U0Y5OEJ4bFpEcFBVMG5PcGRrTmxwTVpKYVlpaUUzRjRFRG9DcE56bmxpY2JrcApjZ2FrcGVrbS9YS21RSlJxWElXci8wM29SdUVFTXBxZzlRbjdWRG8zR0FiUTlnNUR5U1Bid0xvT25xQ0V3WGFJCkF6alFzWU4rc3VRd2FqZHFUcEthZ1FCbWRaMmdNZDBTMTV1Ukt6c2wxOHgzK1JabmRiNWoxNjNuV0NkMlQ5VDgKald3NURISDgvVUFkSGZoOHh0RTJ6bWRHbEg5T3I5U2hIMzViMWgxVm8rU2pNMzRPeWpwVjB3TmNVL1psOTBUdAp1WnJwYnBwTXZCZUVmRzZTczVXVGhySm9LaGl0RkNwWlVqaDZvdnk3Mzd6ditKaUc4aDRBNG1GTmRPSUtBd0I0Cmp2Nms3V3poUVlEa2Q0ZXRoajNndVJCTGZQNThNVEJKaWhZemVINkUzclhjSGE5b0xnREgzczd4bU8yVEtUY24Kd3VIM3AvdC9WWFN3UGJ0QXBXUXdTRFNKSnA5WkF4S0Q1eVdmd3lTU2ZQVGtwM2c1b2NmKzBhSk1Kc2FkU3lwNQpNR1Vic1oxd1hTN2RXMDhOYXZ2WmpmbElNUm8wUFZDbkRVcFp1bjJuekhTRGJDSjB1M0ZYd1lFQzFFejlJUnN0ClJFbDdpdTZQRlVMSldSU0V0SzBKY1lLS0ltNXhQWHIvbTdPc2duMUNJL0F0cTkrWEFjODk1MGVxeTRwTFVQYkYKZkhFOFhVYWFzUU82MDJTeGpnOTZZaWJ3ZnFyTDF2Vjd1MitUYzJleUZ1N3oxUGRPZDQyWko5M2wvM3lOUW92egora0JuQVdObzZ3WnNKSitHNDZDODNYRVBLM0h1bGw1dFg2UDU4NUQ1b3o5U1oyZGlTd1FyVFN1THVSL0JCQUpVCmd1K2FITkJGRmVtUXNEL2QxMllud1h3d3FkZXVaMDVmQlFiWUREdldOM3daUjJJeHZpd1E0bjZjZWl3OUZ4QmcKbWlzMFBGY2NZOWl0SnJrYXlWQVVZUFZ3Sm5XSmZEK2pQNjJ3UWZJWmhhbFQrZDJpUzVQaDEwdWlMNHEvY1JuYgo1c1Mvc2o0Tm5QYmpxc1ZmZWlKTEh3PT0KLS0tLS1FTkQgRU5DUllQVEVEIFBSSVZBVEUgS0VZLS0tLS0K",
 			"-var=account_ec2_sydney_cert=whatever",
 		})
@@ -2071,7 +1718,7 @@ func TestSshTargetResource(t *testing.T) {
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := machines.MachinesQuery{
 			PartialName: "Test",
 			Skip:        0,
@@ -2102,16 +1749,17 @@ func TestSshTargetResource(t *testing.T) {
 
 // TestListeningTargetResource verifies that a listening machine can be reimported with the correct settings
 func TestListeningTargetResource(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/31-listeningtarget", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/31-listeningtarget", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := machines.MachinesQuery{
 			PartialName: "Test",
 			Skip:        0,
@@ -2154,16 +1802,17 @@ func TestListeningTargetResource(t *testing.T) {
 
 // TestPollingTargetResource verifies that a polling machine can be reimported with the correct settings
 func TestPollingTargetResource(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/32-pollingtarget", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/32-pollingtarget", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := machines.MachinesQuery{
 			PartialName: "Test",
 			Skip:        0,
@@ -2206,16 +1855,17 @@ func TestPollingTargetResource(t *testing.T) {
 
 // TestCloudRegionTargetResource verifies that a cloud region can be reimported with the correct settings
 func TestCloudRegionTargetResource(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/33-cloudregiontarget", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/33-cloudregiontarget", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := machines.MachinesQuery{
 			PartialName: "Test",
 			Skip:        0,
@@ -2250,16 +1900,17 @@ func TestCloudRegionTargetResource(t *testing.T) {
 
 // TestOfflineDropTargetResource verifies that an offline drop can be reimported with the correct settings
 func TestOfflineDropTargetResource(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/34-offlinedroptarget", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/34-offlinedroptarget", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := machines.MachinesQuery{
 			PartialName: "Test",
 			Skip:        0,
@@ -2305,16 +1956,17 @@ func TestAzureCloudServiceTargetResource(t *testing.T) {
 	// I could not figure out a combination of properties that made the octopusdeploy_azure_subscription_account resource work
 	return
 
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/35-azurecloudservicetarget", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/35-azurecloudservicetarget", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := machines.MachinesQuery{
 			PartialName: "Azure",
 			Skip:        0,
@@ -2361,9 +2013,10 @@ func TestAzureCloudServiceTargetResource(t *testing.T) {
 
 // TestAzureServiceFabricTargetResource verifies that a service fabric target can be reimported with the correct settings
 func TestAzureServiceFabricTargetResource(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/36-servicefabrictarget", []string{
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/36-servicefabrictarget", []string{
 			"-var=target_service_fabric=whatever",
 		})
 
@@ -2372,7 +2025,7 @@ func TestAzureServiceFabricTargetResource(t *testing.T) {
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := machines.MachinesQuery{
 			PartialName: "Service Fabric",
 			Skip:        0,
@@ -2419,9 +2072,10 @@ func TestAzureServiceFabricTargetResource(t *testing.T) {
 
 // TestAzureWebAppTargetResource verifies that a web app target can be reimported with the correct settings
 func TestAzureWebAppTargetResource(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/37-webapptarget", []string{
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/37-webapptarget", []string{
 			"-var=account_sales_account=whatever",
 		})
 
@@ -2430,7 +2084,7 @@ func TestAzureWebAppTargetResource(t *testing.T) {
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := machines.MachinesQuery{
 			PartialName: "Web App",
 			Skip:        0,
@@ -2485,9 +2139,10 @@ func TestProjectWithGitUsernameExport(t *testing.T) {
 		t.Fatal("The GIT_USERNAME environment variable must be set")
 	}
 
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		_, err := act(t, container, "./test/terraform/39-projectgitusername", []string{
+		_, err := testFramework.Act(t, container, "./test/terraform/39-projectgitusername", []string{
 			"-var=project_git_password=" + os.Getenv("GIT_CREDENTIAL"),
 			"-var=project_git_username=" + os.Getenv("GIT_USERNAME"),
 		})
@@ -2504,16 +2159,17 @@ func TestProjectWithGitUsernameExport(t *testing.T) {
 
 // TestProjectWithDollarSignsExport verifies that a project can be reimported with terraform string interpolation
 func TestProjectWithDollarSignsExport(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/40-escapedollar", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/40-escapedollar", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := projects.ProjectsQuery{
 			PartialName: "Test",
 			Skip:        0,
@@ -2536,16 +2192,17 @@ func TestProjectWithDollarSignsExport(t *testing.T) {
 // TestProjectTerraformInlineScriptExport verifies that a project can be reimported with a terraform inline template step.
 // See https://github.com/OctopusDeployLabs/terraform-provider-octopusdeploy/issues/478
 func TestProjectTerraformInlineScriptExport(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/41-terraforminlinescript", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/41-terraforminlinescript", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := projects.ProjectsQuery{
 			PartialName: "Test",
 			Skip:        0,
@@ -2575,16 +2232,17 @@ func TestProjectTerraformInlineScriptExport(t *testing.T) {
 // TestProjectTerraformPackageScriptExport verifies that a project can be reimported with a terraform package template step.
 // See https://github.com/OctopusDeployLabs/terraform-provider-octopusdeploy/issues/478
 func TestProjectTerraformPackageScriptExport(t *testing.T) {
-	arrangeTest(t, func(t *testing.T, container *octopusContainer) error {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		newSpaceId, err := act(t, container, "./test/terraform/42-terraformpackagescript", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./test/terraform/42-terraformpackagescript", []string{})
 
 		if err != nil {
 			return err
 		}
 
 		// Assert
-		client, err := createClient(container.URI, newSpaceId)
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := projects.ProjectsQuery{
 			PartialName: "Test",
 			Skip:        0,
