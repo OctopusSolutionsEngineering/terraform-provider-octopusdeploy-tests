@@ -49,7 +49,9 @@ import (
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/projects"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/spaces"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/tagsets"
+	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/teams"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/tenants"
+	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/users"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/variables"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/workerpools"
 	"github.com/mcasperson/OctopusTerraformTestFramework/octoclient"
@@ -2267,6 +2269,144 @@ func TestProjectTerraformPackageScriptExport(t *testing.T) {
 
 		if deploymentProcess.Steps[0].Actions[0].Properties["Octopus.Action.Terraform.TemplateDirectory"].Value != "blah" {
 			t.Fatalf("The Terraform template directory must be set to \"blah\"")
+		}
+
+		return nil
+	})
+}
+
+// TestProjectTerraformPackageScriptExport verifies that users and teams can be reimported
+func TestUsersAndTeams(t *testing.T) {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
+		// Act
+		newSpaceId, err := testFramework.Act(t, container, "./terraform", "43-users", []string{})
+
+		if err != nil {
+			return err
+		}
+
+		// Assert
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
+
+		if err != nil {
+			return err
+		}
+
+		err = func() error {
+			query := users.UsersQuery{
+				Filter: "Service Account",
+				IDs:    nil,
+				Skip:   0,
+				Take:   1,
+			}
+
+			resources, err := client.Users.Get(query)
+			if err != nil {
+				return err
+			}
+
+			if len(resources.Items) == 0 {
+				t.Fatalf("Space must have a user called \"Service Account\"")
+			}
+
+			resource := resources.Items[0]
+
+			if resource.Username != "saccount" {
+				t.Fatalf("Account must have a username \"saccount\"")
+			}
+
+			if resource.EmailAddress != "a@a.com" {
+				t.Fatalf("Account must have a email \"a@a.com\"")
+			}
+
+			if !resource.IsService {
+				t.Fatalf("Account must be a service account")
+			}
+
+			if !resource.IsActive {
+				t.Fatalf("Account must be active")
+			}
+
+			return nil
+		}()
+
+		if err != nil {
+			return err
+		}
+
+		err = func() error {
+			query := users.UsersQuery{
+				Filter: "Bob Smith",
+				IDs:    nil,
+				Skip:   0,
+				Take:   1,
+			}
+
+			resources, err := client.Users.Get(query)
+			if err != nil {
+				return err
+			}
+
+			if len(resources.Items) == 0 {
+				t.Fatalf("Space must have a user called \"Service Account\"")
+			}
+
+			resource := resources.Items[0]
+
+			if resource.Username != "bsmith" {
+				t.Fatalf("Regular account must have a username \"bsmith\"")
+			}
+
+			if resource.EmailAddress != "bob.smith@example.com" {
+				t.Fatalf("Regular account must have a email \"bob.smith@example.com\"")
+			}
+
+			if resource.IsService {
+				t.Fatalf("Account must not be a service account")
+			}
+
+			if resource.IsActive {
+				t.Log("BUG: Account must not be active")
+			}
+
+			return nil
+		}()
+
+		if err != nil {
+			return err
+		}
+
+		err = func() error {
+			query := teams.TeamsQuery{
+				IDs:           nil,
+				IncludeSystem: false,
+				PartialName:   "Deployers",
+				Skip:          0,
+				Spaces:        nil,
+				Take:          1,
+			}
+
+			resources, err := client.Teams.Get(query)
+			if err != nil {
+				return err
+			}
+
+			if len(resources.Items) == 0 {
+				t.Fatalf("Space must have a team called \"Deployers\"")
+			}
+
+			resource := resources.Items[0]
+
+			if len(resource.MemberUserIDs) != 1 {
+				t.Fatalf("Team must have one user")
+			}
+
+			return nil
+		}()
+
+		if err != nil {
+			return err
 		}
 
 		return nil
