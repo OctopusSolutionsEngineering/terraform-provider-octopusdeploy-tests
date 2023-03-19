@@ -173,6 +173,12 @@ func TestAwsAccountExport(t *testing.T) {
 			return err
 		}
 
+		err = testFramework.TerraformInitAndApply(t, container, filepath.Join("./terraform", "3a-awsaccountds"), newSpaceId, []string{})
+
+		if err != nil {
+			return err
+		}
+
 		// Assert
 		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := accounts.AccountsQuery{
@@ -193,6 +199,17 @@ func TestAwsAccountExport(t *testing.T) {
 
 		if resource.AccessKey != "ABCDEFGHIJKLMNOPQRST" {
 			t.Fatalf("The account must have an access key of \"ABCDEFGHIJKLMNOPQRST\"")
+		}
+
+		// Verify the environment data lookups work
+		lookup, err := testFramework.GetOutputVariable(t, filepath.Join("terraform", "3a-awsaccountds"), "data_lookup")
+
+		if err != nil {
+			return err
+		}
+
+		if lookup != resource.ID {
+			t.Fatal("The target lookup did not succeed. Lookup value was \"" + lookup + "\" while the resource value was \"" + resource.ID + "\".")
 		}
 
 		return nil
@@ -520,6 +537,12 @@ func TestHelmFeedResource(t *testing.T) {
 			return err
 		}
 
+		err = testFramework.TerraformInitAndApply(t, container, filepath.Join("./terraform", "10a-helmfeedds"), newSpaceId, []string{})
+
+		if err != nil {
+			return err
+		}
+
 		// Assert
 		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := feeds.FeedsQuery{
@@ -566,6 +589,17 @@ func TestHelmFeedResource(t *testing.T) {
 			t.Fatal("The feed must be have a PackageAcquisitionLocationOptions including \"ExecutionTarget\" and \"NotAcquired\"")
 		}
 
+		// Verify the environment data lookups work
+		lookup, err := testFramework.GetOutputVariable(t, filepath.Join("terraform", "10a-helmfeedds"), "data_lookup")
+
+		if err != nil {
+			return err
+		}
+
+		if lookup != resource.ID {
+			t.Fatal("The target lookup did not succeed. Lookup value was \"" + lookup + "\" while the resource value was \"" + resource.ID + "\".")
+		}
+
 		return nil
 	})
 }
@@ -576,6 +610,12 @@ func TestDockerFeedResource(t *testing.T) {
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
 		newSpaceId, err := testFramework.Act(t, container, "./terraform", "11-dockerfeed", []string{})
+
+		if err != nil {
+			return err
+		}
+
+		err = testFramework.TerraformInitAndApply(t, container, filepath.Join("./terraform", "11a-dockerfeedds"), newSpaceId, []string{})
 
 		if err != nil {
 			return err
@@ -631,6 +671,17 @@ func TestDockerFeedResource(t *testing.T) {
 			t.Fatal("The feed must be have a PackageAcquisitionLocationOptions including \"ExecutionTarget\" and \"NotAcquired\"")
 		}
 
+		// Verify the environment data lookups work
+		lookup, err := testFramework.GetOutputVariable(t, filepath.Join("terraform", "11a-dockerfeedds"), "data_lookup")
+
+		if err != nil {
+			return err
+		}
+
+		if lookup != resource.ID {
+			t.Fatal("The target lookup did not succeed. Lookup value was \"" + lookup + "\" while the resource value was \"" + resource.ID + "\".")
+		}
+
 		return nil
 	})
 }
@@ -653,6 +704,12 @@ func TestEcrFeedResource(t *testing.T) {
 			"-var=feed_ecr_access_key=" + os.Getenv("ECR_ACCESS_KEY"),
 			"-var=feed_ecr_secret_key=" + os.Getenv("ECR_SECRET_KEY"),
 		})
+
+		if err != nil {
+			return err
+		}
+
+		err = testFramework.TerraformInitAndApply(t, container, filepath.Join("./terraform", "12a-ecrfeedds"), newSpaceId, []string{})
 
 		if err != nil {
 			return err
@@ -704,6 +761,17 @@ func TestEcrFeedResource(t *testing.T) {
 			t.Fatal("The feed must be have a PackageAcquisitionLocationOptions including \"ExecutionTarget\" and \"NotAcquired\"")
 		}
 
+		// Verify the environment data lookups work
+		lookup, err := testFramework.GetOutputVariable(t, filepath.Join("terraform", "12a-ecrfeedds"), "data_lookup")
+
+		if err != nil {
+			return err
+		}
+
+		if lookup != resource.ID {
+			t.Fatal("The target lookup did not succeed. Lookup value was \"" + lookup + "\" while the resource value was \"" + resource.ID + "\".")
+		}
+
 		return nil
 	})
 }
@@ -714,6 +782,12 @@ func TestMavenFeedResource(t *testing.T) {
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
 		newSpaceId, err := testFramework.Act(t, container, "./terraform", "13-mavenfeed", []string{})
+
+		if err != nil {
+			return err
+		}
+
+		err = testFramework.TerraformInitAndApply(t, container, filepath.Join("./terraform", "13a-mavenfeedds"), newSpaceId, []string{})
 
 		if err != nil {
 			return err
@@ -773,6 +847,17 @@ func TestMavenFeedResource(t *testing.T) {
 			t.Fatal("The feed must be have a PackageAcquisitionLocationOptions including \"ExecutionTarget\" and \"Server\"")
 		}
 
+		// Verify the environment data lookups work
+		lookup, err := testFramework.GetOutputVariable(t, filepath.Join("terraform", "13a-mavenfeedds"), "data_lookup")
+
+		if err != nil {
+			return err
+		}
+
+		if lookup != resource.ID {
+			t.Fatal("The target lookup did not succeed. Lookup value was \"" + lookup + "\" while the resource value was \"" + resource.ID + "\".")
+		}
+
 		return nil
 	})
 }
@@ -783,6 +868,12 @@ func TestNugetFeedResource(t *testing.T) {
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
 		newSpaceId, err := testFramework.Act(t, container, "./terraform", "14-nugetfeed", []string{})
+
+		if err != nil {
+			return err
+		}
+
+		err = testFramework.TerraformInitAndApply(t, container, filepath.Join("./terraform", "14a-nugetfeedds"), newSpaceId, []string{})
 
 		if err != nil {
 			return err
@@ -844,6 +935,17 @@ func TestNugetFeedResource(t *testing.T) {
 
 		if !(foundExecutionTarget && foundServer) {
 			t.Fatal("The feed must be have a PackageAcquisitionLocationOptions including \"ExecutionTarget\" and \"Server\"")
+		}
+
+		// Verify the environment data lookups work
+		lookup, err := testFramework.GetOutputVariable(t, filepath.Join("terraform", "14a-nugetfeedds"), "data_lookup")
+
+		if err != nil {
+			return err
+		}
+
+		if lookup != resource.ID {
+			t.Fatal("The target lookup did not succeed. Lookup value was \"" + lookup + "\" while the resource value was \"" + resource.ID + "\".")
 		}
 
 		return nil
