@@ -58,6 +58,7 @@ import (
 	"github.com/mcasperson/OctopusTerraformTestFramework/test"
 	"k8s.io/utils/strings/slices"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -892,6 +893,12 @@ func TestEnvironmentResource(t *testing.T) {
 			return err
 		}
 
+		err = testFramework.TerraformInitAndApply(t, container, filepath.Join("./terraform", "16a-environmentlookup"), newSpaceId, []string{})
+
+		if err != nil {
+			return err
+		}
+
 		// Assert
 		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := environments.EnvironmentsQuery{
@@ -920,6 +927,17 @@ func TestEnvironmentResource(t *testing.T) {
 
 		if resource.UseGuidedFailure {
 			t.Fatal("The environment must not have guided failure enabled.")
+		}
+
+		// Verify the environment data lookups work
+		lookup, err := testFramework.GetOutputVariable(t, filepath.Join("terraform", "16a-environmentlookup"), "data_lookup")
+
+		if err != nil {
+			return err
+		}
+
+		if lookup != resource.ID {
+			t.Fatal("The environment lookup did not succeed. Lookup value was \"" + lookup + "\" while the resource value was \"" + resource.ID + "\".")
 		}
 
 		return nil

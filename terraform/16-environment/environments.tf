@@ -18,10 +18,3 @@ resource "octopusdeploy_environment" "production_environment" {
   name                         = "Production"
   use_guided_failure           = false
 }
-
-data "octopusdeploy_environments" "data_lookup" {
-  name       = "Production"
-  skip       = 0
-  take       = 1
-  depends_on = [octopusdeploy_environment.production_environment]
-}
