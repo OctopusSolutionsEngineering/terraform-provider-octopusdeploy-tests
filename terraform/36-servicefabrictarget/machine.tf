@@ -32,3 +32,10 @@ variable "target_service_fabric" {
   sensitive   = true
   description = "The secret variable value associated with the target \"Service Fabric\""
 }
+
+data "octopusdeploy_azure_service_fabric_cluster_deployment_targets" "data_lookup" {
+  partial_name = "Service Fabric"
+  skip         = 0
+  take         = 1
+  depends_on   = [octopusdeploy_azure_service_fabric_cluster_deployment_target.target_service_fabric]
+}
