@@ -4,16 +4,14 @@ go 1.20
 
 require (
 	github.com/OctopusDeploy/go-octopusdeploy/v2 v2.21.0
-	github.com/avast/retry-go/v4 v4.3.3
-	github.com/google/uuid v1.3.0
 	github.com/mcasperson/OctopusTerraformTestFramework v0.0.0-20230319061226-461e10ad4c1f
-	github.com/testcontainers/testcontainers-go v0.18.0
 	k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b
 )
 
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/Microsoft/go-winio v0.6.0 // indirect
+	github.com/avast/retry-go/v4 v4.3.3 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.0 // indirect
 	github.com/containerd/containerd v1.6.19 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -28,6 +26,7 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
+	github.com/google/uuid v1.3.0 // indirect
 	github.com/klauspost/compress v1.16.0 // indirect
 	github.com/leodido/go-urn v1.2.2 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
@@ -42,6 +41,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/stretchr/testify v1.8.2 // indirect
+	github.com/testcontainers/testcontainers-go v0.18.0 // indirect
 	golang.org/x/crypto v0.7.0 // indirect
 	golang.org/x/exp v0.0.0-20230304125523-9ff063c70017 // indirect
 	golang.org/x/mod v0.9.0 // indirect
