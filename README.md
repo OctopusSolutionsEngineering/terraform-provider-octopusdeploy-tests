@@ -1,9 +1,12 @@
 This project includes a battery of tests that run the [Octopus Terraform provider](https://registry.terraform.io/providers/OctopusDeployLabs/octopusdeploy/latest/docs)
 against a live instance of Octopus inside a container.
 
-Each directory under `test/terraform` is a self-contained Terraform project deploying one of the resources exposed
+Each directory under `terraform` is a self-contained Terraform project deploying one or more of the resources exposed
 by the Terraform provider (and whatever supporting resources are required). The test then uses the Octopus client
 to query the Octopus instance and verify the appropriate changes were implemented.
+
+You can also treat the directories under `terraform` as tested examples ready to copy into your own projects. Just
+be aware that some modules have known bugs. See the **Known Bugs** section below for more details.
 
 To test the Octopus Terraform provider locally, save the following into a failed called `~/.terraformrc`, replacing
 `/var/home/yourname/Code/terraform-provider-octopusdeploy` with the directory containing your clone
