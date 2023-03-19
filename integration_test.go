@@ -119,6 +119,12 @@ func TestProjectGroupResource(t *testing.T) {
 			return err
 		}
 
+		err = testFramework.TerraformInitAndApply(t, container, filepath.Join("./terraform", "2a-projectgroupds"), newSpaceId, []string{})
+
+		if err != nil {
+			return err
+		}
+
 		// Assert
 		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := projectgroups.ProjectGroupsQuery{
@@ -139,6 +145,17 @@ func TestProjectGroupResource(t *testing.T) {
 
 		if resource.Description != "Test Description" {
 			t.Fatalf("The project group must be have a description of \"Test Description\"")
+		}
+
+		// Verify the environment data lookups work
+		lookup, err := testFramework.GetOutputVariable(t, filepath.Join("terraform", "2a-projectgroupds"), "data_lookup")
+
+		if err != nil {
+			return err
+		}
+
+		if lookup != resource.ID {
+			t.Fatal("The target lookup did not succeed. Lookup value was \"" + lookup + "\" while the resource value was \"" + resource.ID + "\".")
 		}
 
 		return nil
@@ -844,6 +861,12 @@ func TestWorkerPoolResource(t *testing.T) {
 			return err
 		}
 
+		err = testFramework.TerraformInitAndApply(t, container, filepath.Join("./terraform", "15a-workerpoolds"), newSpaceId, []string{})
+
+		if err != nil {
+			return err
+		}
+
 		// Assert
 		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := workerpools.WorkerPoolsQuery{
@@ -876,6 +899,17 @@ func TestWorkerPoolResource(t *testing.T) {
 
 		if resource.IsDefault {
 			t.Fatal("The worker pool must be must not be the default")
+		}
+
+		// Verify the environment data lookups work
+		lookup, err := testFramework.GetOutputVariable(t, filepath.Join("terraform", "15a-workerpoolds"), "data_lookup")
+
+		if err != nil {
+			return err
+		}
+
+		if lookup != resource.ID {
+			t.Fatal("The target lookup did not succeed. Lookup value was \"" + lookup + "\" while the resource value was \"" + resource.ID + "\".")
 		}
 
 		return nil
@@ -1117,6 +1151,12 @@ func TestProjectResource(t *testing.T) {
 			return err
 		}
 
+		err = testFramework.TerraformInitAndApply(t, container, filepath.Join("./terraform", "19a-projectds"), newSpaceId, []string{})
+
+		if err != nil {
+			return err
+		}
+
 		// Assert
 		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := projects.ProjectsQuery{
@@ -1177,6 +1217,17 @@ func TestProjectResource(t *testing.T) {
 
 		if resource.ConnectivityPolicy.SkipMachineBehavior != "SkipUnavailableMachines" {
 			t.Log("BUG: The project must be have a ConnectivityPolicy.SkipMachineBehavior of \"SkipUnavailableMachines\" (was \"" + resource.ConnectivityPolicy.SkipMachineBehavior + "\") - Known issue where the value returned by /api/Spaces-#/ProjectGroups/ProjectGroups-#/projects is different to /api/Spaces-/Projects")
+		}
+
+		// Verify the environment data lookups work
+		lookup, err := testFramework.GetOutputVariable(t, filepath.Join("terraform", "19a-projectds"), "data_lookup")
+
+		if err != nil {
+			return err
+		}
+
+		if lookup != resource.ID {
+			t.Fatal("The target lookup did not succeed. Lookup value was \"" + lookup + "\" while the resource value was \"" + resource.ID + "\".")
 		}
 
 		return nil
@@ -1364,6 +1415,12 @@ func TestScriptModuleResource(t *testing.T) {
 			return err
 		}
 
+		err = testFramework.TerraformInitAndApply(t, container, filepath.Join("./terraform", "23a-scriptmoduleds"), newSpaceId, []string{})
+
+		if err != nil {
+			return err
+		}
+
 		// Assert
 		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := variables.LibraryVariablesQuery{
@@ -1440,6 +1497,17 @@ func TestScriptModuleResource(t *testing.T) {
 			t.Fatal("Script module must create two variables for script and language")
 		}
 
+		// Verify the environment data lookups work
+		lookup, err := testFramework.GetOutputVariable(t, filepath.Join("terraform", "23a-scriptmoduleds"), "data_lookup")
+
+		if err != nil {
+			return err
+		}
+
+		if lookup != resource.ID {
+			t.Fatal("The target lookup did not succeed. Lookup value was \"" + lookup + "\" while the resource value was \"" + resource.ID + "\".")
+		}
+
 		return nil
 	})
 }
@@ -1450,6 +1518,12 @@ func TestTenantsResource(t *testing.T) {
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
 		newSpaceId, err := testFramework.Act(t, container, "./terraform", "24-tenants", []string{})
+
+		if err != nil {
+			return err
+		}
+
+		err = testFramework.TerraformInitAndApply(t, container, filepath.Join("./terraform", "24a-tenantsds"), newSpaceId, []string{})
 
 		if err != nil {
 			return err
@@ -1489,6 +1563,27 @@ func TestTenantsResource(t *testing.T) {
 			if len(u) != 3 {
 				t.Fatal("The tenant must have be linked to three environments")
 			}
+		}
+
+		// Verify the environment data lookups work
+		tagsets, err := testFramework.GetOutputVariable(t, filepath.Join("terraform", "24a-tenantsds"), "tagsets")
+
+		if err != nil {
+			return err
+		}
+
+		if tagsets == "" {
+			t.Fatal("The tagset lookup failed.")
+		}
+
+		tenants, err := testFramework.GetOutputVariable(t, filepath.Join("terraform", "24a-tenantsds"), "tenants_lookup")
+
+		if err != nil {
+			return err
+		}
+
+		if tenants != resource.ID {
+			t.Fatal("The target lookup did not succeed. Lookup value was \"" + tenants + "\" while the resource value was \"" + resource.ID + "\".")
 		}
 
 		return nil
@@ -1837,6 +1932,12 @@ func TestSshTargetResource(t *testing.T) {
 			return err
 		}
 
+		err = testFramework.TerraformInitAndApply(t, container, filepath.Join("./terraform", "30a-sshtargetds"), newSpaceId, []string{})
+
+		if err != nil {
+			return err
+		}
+
 		// Assert
 		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := machines.MachinesQuery{
@@ -1863,6 +1964,17 @@ func TestSshTargetResource(t *testing.T) {
 			t.Fatal("The machine must have a Endpoint.DotNetCorePlatform of \"linux-x64\" (was \"" + resource.Endpoint.(*machines.SSHEndpoint).DotNetCorePlatform + "\")")
 		}
 
+		// Verify the environment data lookups work
+		lookup, err := testFramework.GetOutputVariable(t, filepath.Join("terraform", "30a-sshtargetds"), "data_lookup")
+
+		if err != nil {
+			return err
+		}
+
+		if lookup != resource.ID {
+			t.Fatal("The target lookup did not succeed. Lookup value was \"" + lookup + "\" while the resource value was \"" + resource.ID + "\".")
+		}
+
 		return nil
 	})
 }
@@ -1876,6 +1988,12 @@ func TestListeningTargetResource(t *testing.T) {
 
 		if err != nil {
 			return err
+		}
+
+		err = testFramework.TerraformInitAndApply(t, container, filepath.Join("./terraform", "31a-listeningtargetds"), newSpaceId, []string{})
+
+		if err != nil {
+			t.Log("BUG: listening targets data sources don't appear to work")
 		}
 
 		// Assert
@@ -1931,6 +2049,12 @@ func TestPollingTargetResource(t *testing.T) {
 			return err
 		}
 
+		err = testFramework.TerraformInitAndApply(t, container, filepath.Join("./terraform", "32a-pollingtargetds"), newSpaceId, []string{})
+
+		if err != nil {
+			return err
+		}
+
 		// Assert
 		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := machines.MachinesQuery{
@@ -1967,6 +2091,17 @@ func TestPollingTargetResource(t *testing.T) {
 
 		if resource.TenantedDeploymentMode != "Untenanted" {
 			t.Fatal("The machine must have a TenantedDeploymentParticipation of \"Untenanted\" (was \"" + resource.TenantedDeploymentMode + "\")")
+		}
+
+		// Verify the environment data lookups work
+		lookup, err := testFramework.GetOutputVariable(t, filepath.Join("terraform", "32a-pollingtargetds"), "data_lookup")
+
+		if err != nil {
+			return err
+		}
+
+		if lookup != resource.ID {
+			t.Fatal("The target lookup did not succeed. Lookup value was \"" + lookup + "\" while the resource value was \"" + resource.ID + "\".")
 		}
 
 		return nil
@@ -2035,6 +2170,12 @@ func TestOfflineDropTargetResource(t *testing.T) {
 			return err
 		}
 
+		err = testFramework.TerraformInitAndApply(t, container, filepath.Join("./terraform", "34a-offlinedroptargetds"), newSpaceId, []string{})
+
+		if err != nil {
+			return err
+		}
+
 		// Assert
 		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := machines.MachinesQuery{
@@ -2071,6 +2212,17 @@ func TestOfflineDropTargetResource(t *testing.T) {
 
 		if resource.Endpoint.(*machines.OfflinePackageDropEndpoint).WorkingDirectory != "c:\\temp" {
 			t.Fatal("The machine must have a Endpoint.OctopusWorkingDirectory of \"c:\\temp\" (was \"" + resource.Endpoint.(*machines.OfflinePackageDropEndpoint).WorkingDirectory + "\")")
+		}
+
+		// Verify the environment data lookups work
+		lookup, err := testFramework.GetOutputVariable(t, filepath.Join("terraform", "34a-offlinedroptargetds"), "data_lookup")
+
+		if err != nil {
+			return err
+		}
+
+		if lookup != resource.ID {
+			t.Fatal("The target lookup did not succeed. Lookup value was \"" + lookup + "\" while the resource value was \"" + resource.ID + "\".")
 		}
 
 		return nil
@@ -2444,6 +2596,12 @@ func TestUsersAndTeams(t *testing.T) {
 			return err
 		}
 
+		err = testFramework.TerraformInitAndApply(t, container, filepath.Join("./terraform", "43a-usersds"), newSpaceId, []string{})
+
+		if err != nil {
+			return err
+		}
+
 		// Assert
 		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 
@@ -2565,6 +2723,37 @@ func TestUsersAndTeams(t *testing.T) {
 
 		if err != nil {
 			return err
+		}
+
+		// Verify the environment data lookups work
+		teams, err := testFramework.GetOutputVariable(t, filepath.Join("terraform", "43a-usersds"), "teams_lookup")
+
+		if err != nil {
+			return err
+		}
+
+		if teams == "" {
+			t.Fatal("The teams lookup failed.")
+		}
+
+		roles, err := testFramework.GetOutputVariable(t, filepath.Join("terraform", "43a-usersds"), "roles_lookup")
+
+		if err != nil {
+			return err
+		}
+
+		if roles == "" {
+			t.Fatal("The roles lookup failed.")
+		}
+
+		users, err := testFramework.GetOutputVariable(t, filepath.Join("terraform", "43a-usersds"), "users_lookup")
+
+		if err != nil {
+			return err
+		}
+
+		if users == "" {
+			t.Fatal("The users lookup failed.")
 		}
 
 		return nil
