@@ -36,3 +36,8 @@ To build the and run the tests, run:
     export GIT_USERNAME=github username
     go test -c -o integration_test
     ./integration_test
+
+# Known Bugs
+
+This project exposes a number of known bugs. These are logged to the console with the prefix `BUG:`. You can also search
+for that string in the code to identify known bugs directly in the tests.

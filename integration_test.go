@@ -955,6 +955,12 @@ func TestLifecycleResource(t *testing.T) {
 			return err
 		}
 
+		err = testFramework.TerraformInitAndApply(t, container, filepath.Join("./terraform", "17a-lifecycleds"), newSpaceId, []string{})
+
+		if err != nil {
+			return err
+		}
+
 		// Assert
 		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := lifecycles.Query{
@@ -1001,6 +1007,17 @@ func TestLifecycleResource(t *testing.T) {
 			t.Fatal("The lifecycle must be have a release retention unit set to \"Days\" (was \"" + resource.ReleaseRetentionPolicy.Unit + "\")")
 		}
 
+		// Verify the environment data lookups work
+		lookup, err := testFramework.GetOutputVariable(t, filepath.Join("terraform", "17a-lifecycleds"), "data_lookup")
+
+		if err != nil {
+			return err
+		}
+
+		if lookup != resource.ID {
+			t.Fatal("The target lookup did not succeed. Lookup value was \"" + lookup + "\" while the resource value was \"" + resource.ID + "\".")
+		}
+
 		return nil
 	})
 }
@@ -1011,6 +1028,12 @@ func TestVariableSetResource(t *testing.T) {
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
 		newSpaceId, err := testFramework.Act(t, container, "./terraform", "18-variableset", []string{})
+
+		if err != nil {
+			return err
+		}
+
+		err = testFramework.TerraformInitAndApply(t, container, filepath.Join("./terraform", "18a-variablesetds"), newSpaceId, []string{})
 
 		if err != nil {
 			return err
@@ -1066,6 +1089,17 @@ func TestVariableSetResource(t *testing.T) {
 
 		if !variableSet.Variables[0].IsEditable {
 			t.Fatal("The library variable set variable must be editable")
+		}
+
+		// Verify the environment data lookups work
+		lookup, err := testFramework.GetOutputVariable(t, filepath.Join("terraform", "18a-variablesetds"), "data_lookup")
+
+		if err != nil {
+			return err
+		}
+
+		if lookup != resource.ID {
+			t.Fatal("The target lookup did not succeed. Lookup value was \"" + lookup + "\" while the resource value was \"" + resource.ID + "\".")
 		}
 
 		return nil
@@ -1746,6 +1780,12 @@ func TestK8sTargetResource(t *testing.T) {
 			return err
 		}
 
+		err = testFramework.TerraformInitAndApply(t, container, filepath.Join("./terraform", "29a-k8stargetds"), newSpaceId, []string{})
+
+		if err != nil {
+			return err
+		}
+
 		// Assert
 		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := machines.MachinesQuery{
@@ -1766,6 +1806,17 @@ func TestK8sTargetResource(t *testing.T) {
 
 		if fmt.Sprint(resource.Endpoint.(*machines.KubernetesEndpoint).ClusterURL) != "https://cluster" {
 			t.Fatal("The machine must have a Endpoint.ClusterUrl of \"https://cluster\" (was \"" + fmt.Sprint(resource.Endpoint.(*machines.KubernetesEndpoint).ClusterURL) + "\")")
+		}
+
+		// Verify the environment data lookups work
+		lookup, err := testFramework.GetOutputVariable(t, filepath.Join("terraform", "29a-k8stargetds"), "data_lookup")
+
+		if err != nil {
+			return err
+		}
+
+		if lookup != resource.ID {
+			t.Fatal("The target lookup did not succeed. Lookup value was \"" + lookup + "\" while the resource value was \"" + resource.ID + "\".")
 		}
 
 		return nil
