@@ -12,10 +12,3 @@ variable "gitcredential_test" {
   description = "The secret variable value associated with the git credential test"
   default     = "Password01!"
 }
-
-data "octopusdeploy_git_credentials" "data_lookup" {
-  name = "test"
-  skip = 0
-  take = 1
-  depends_on = [octopusdeploy_git_credential.gitcredential_test]
-}

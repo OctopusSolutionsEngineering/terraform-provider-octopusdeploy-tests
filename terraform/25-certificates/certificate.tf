@@ -8,11 +8,3 @@ resource "octopusdeploy_certificate" "certificate_kind_ca" {
   tenanted_deployment_participation = "Untenanted"
   tenants                           = []
 }
-
-data "octopusdeploy_certificates" "data_lookup" {
-  archived     = false
-  partial_name = "Test"
-  skip         = 0
-  take         = 1
-  depends_on   = [octopusdeploy_certificate.certificate_kind_ca]
-}

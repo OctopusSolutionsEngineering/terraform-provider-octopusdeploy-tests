@@ -40,10 +40,3 @@ variable "account_sales_account" {
   sensitive   = true
   description = "The Azure secret associated with the account Sales Account"
 }
-
-data "octopusdeploy_azure_web_app_deployment_targets" "data_lookup" {
-  partial_name = "Web App"
-  skip         = 0
-  take         = 1
-  depends_on   = [octopusdeploy_azure_web_app_deployment_target.target_web_app]
-}

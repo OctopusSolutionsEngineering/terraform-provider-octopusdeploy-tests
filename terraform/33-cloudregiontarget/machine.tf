@@ -20,10 +20,3 @@ resource "octopusdeploy_cloud_region_deployment_target" "target_region1" {
   tenants                           = []
   thumbprint                        = ""
 }
-
-data "octopusdeploy_cloud_region_deployment_targets" "example" {
-  name       = "Test"
-  skip       = 0
-  take       = 1
-  depends_on = [octopusdeploy_cloud_region_deployment_target.target_region1]
-}

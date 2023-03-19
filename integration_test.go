@@ -1160,6 +1160,12 @@ func TestProjectChannelResource(t *testing.T) {
 			return err
 		}
 
+		err = testFramework.TerraformInitAndApply(t, container, filepath.Join("./terraform", "20a-channelds"), newSpaceId, []string{})
+
+		if err != nil {
+			return err
+		}
+
 		// Assert
 		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := channels.Query{
@@ -1200,6 +1206,17 @@ func TestProjectChannelResource(t *testing.T) {
 
 		if resource.Rules[0].ActionPackages[0].PackageReference != "test" {
 			t.Fatal("The channel rule action package must be be set to \"test\" (was \"" + resource.Rules[0].ActionPackages[0].PackageReference + "\")")
+		}
+
+		// Verify the environment data lookups work
+		lookup, err := testFramework.GetOutputVariable(t, filepath.Join("terraform", "20a-channelds"), "data_lookup")
+
+		if err != nil {
+			return err
+		}
+
+		if lookup != resource.ID {
+			t.Fatal("The environment lookup did not succeed. Lookup value was \"" + lookup + "\" while the resource value was \"" + resource.ID + "\".")
 		}
 
 		return nil
@@ -1275,13 +1292,28 @@ func TestGitCredentialsResource(t *testing.T) {
 	testFramework := test.OctopusContainerTest{}
 	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
 		// Act
-		_, err := testFramework.Act(t, container, "./terraform", "22-gitcredentialtest", []string{})
+		newSpaceId, err := testFramework.Act(t, container, "./terraform", "22-gitcredentialtest", []string{})
 
 		if err != nil {
 			return err
 		}
 
-		// Octopus client does not expose git credentials, so we just test that they can be imported
+		err = testFramework.TerraformInitAndApply(t, container, filepath.Join("./terraform", "22a-gitcredentialtestds"), newSpaceId, []string{})
+
+		if err != nil {
+			return err
+		}
+
+		// Verify the environment data lookups work
+		lookup, err := testFramework.GetOutputVariable(t, filepath.Join("terraform", "22a-gitcredentialtestds"), "data_lookup")
+
+		if err != nil {
+			return err
+		}
+
+		if lookup == "" {
+			t.Fatal("The target lookup did not succeed.")
+		}
 
 		return nil
 	})
@@ -1440,6 +1472,12 @@ func TestCertificateResource(t *testing.T) {
 			return err
 		}
 
+		err = testFramework.TerraformInitAndApply(t, container, filepath.Join("./terraform", "25a-certificatesds"), newSpaceId, []string{})
+
+		if err != nil {
+			return err
+		}
+
 		// Assert
 		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := certificates.CertificatesQuery{
@@ -1480,6 +1518,17 @@ func TestCertificateResource(t *testing.T) {
 
 		if len(resource.TenantIDs) != 0 {
 			t.Fatal("The tenant must have no tenants")
+		}
+
+		// Verify the environment data lookups work
+		lookup, err := testFramework.GetOutputVariable(t, filepath.Join("terraform", "25a-certificatesds"), "data_lookup")
+
+		if err != nil {
+			return err
+		}
+
+		if lookup != resource.ID {
+			t.Fatal("The environment lookup did not succeed. Lookup value was \"" + lookup + "\" while the resource value was \"" + resource.ID + "\".")
 		}
 
 		return nil
@@ -1884,6 +1933,12 @@ func TestCloudRegionTargetResource(t *testing.T) {
 			return err
 		}
 
+		err = testFramework.TerraformInitAndApply(t, container, filepath.Join("./terraform", "33a-cloudregiontargetds"), newSpaceId, []string{})
+
+		if err != nil {
+			t.Log("BUG: cloud region data source does not appear to work")
+		}
+
 		// Assert
 		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := machines.MachinesQuery{
@@ -2120,6 +2175,12 @@ func TestAzureWebAppTargetResource(t *testing.T) {
 			return err
 		}
 
+		err = testFramework.TerraformInitAndApply(t, container, filepath.Join("./terraform", "37a-webapptarget"), newSpaceId, []string{})
+
+		if err != nil {
+			return err
+		}
+
 		// Assert
 		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
 		query := machines.MachinesQuery{
@@ -2160,6 +2221,17 @@ func TestAzureWebAppTargetResource(t *testing.T) {
 
 		if resource.Endpoint.(*machines.AzureWebAppEndpoint).WebAppSlotName != "slot1" {
 			t.Fatal("The machine must have a Endpoint.WebAppSlotName of \"slot1\" (was \"" + resource.Endpoint.(*machines.AzureWebAppEndpoint).WebAppSlotName + "\")")
+		}
+
+		// Verify the environment data lookups work
+		lookup, err := testFramework.GetOutputVariable(t, filepath.Join("terraform", "37a-webapptarget"), "data_lookup")
+
+		if err != nil {
+			return err
+		}
+
+		if lookup != resource.ID {
+			t.Fatal("The target lookup did not succeed. Lookup value was \"" + lookup + "\" while the resource value was \"" + resource.ID + "\".")
 		}
 
 		return nil

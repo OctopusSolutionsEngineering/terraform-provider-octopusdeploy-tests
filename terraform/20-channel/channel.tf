@@ -12,10 +12,3 @@ resource "octopusdeploy_channel" "backend_mainline" {
     }
   }
 }
-
-data "octopusdeploy_channels" "data_lookup" {
-  partial_name = "Test"
-  skip         = 0
-  take         = 1
-  depends_on   = [octopusdeploy_channel.backend_mainline]
-}
