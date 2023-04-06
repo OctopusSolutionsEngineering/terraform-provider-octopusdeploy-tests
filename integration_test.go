@@ -2947,3 +2947,98 @@ func TestGithubFeedResource(t *testing.T) {
 		return nil
 	})
 }
+
+// TestProjectWithScriptActions verifies that a project with a plain script step can be applied and reapplied
+func TestProjectWithScriptActions(t *testing.T) {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
+		// Act
+		newSpaceId, err := testFramework.Act(t, container, "./terraform", "45-projectwithscriptactions", []string{})
+
+		if err != nil {
+			return err
+		}
+
+		// Do a second apply to catch the scenario documented at https://github.com/OctopusDeployLabs/terraform-provider-octopusdeploy/issues/509
+		err = testFramework.TerraformApply(t, filepath.Join("./terraform", "45-projectwithscriptactions"), container.URI, newSpaceId, []string{})
+
+		if err != nil {
+			return err
+		}
+
+		// Assert
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
+		query := projects.ProjectsQuery{
+			PartialName: "Test",
+			Skip:        0,
+			Take:        1,
+		}
+
+		resources, err := client.Projects.Get(query)
+		if err != nil {
+			return err
+		}
+
+		if len(resources.Items) == 0 {
+			t.Fatalf("Space must have a project called \"Test\"")
+		}
+		resource := resources.Items[0]
+
+		if resource.Description != "Test project" {
+			t.Fatal("The project must be have a description of \"Test project\" (was \"" + resource.Description + "\")")
+		}
+
+		if resource.AutoCreateRelease {
+			t.Fatal("The project must not have auto release create enabled")
+		}
+
+		if resource.DefaultGuidedFailureMode != "EnvironmentDefault" {
+			t.Fatal("The project must be have a DefaultGuidedFailureMode of \"EnvironmentDefault\" (was \"" + resource.DefaultGuidedFailureMode + "\")")
+		}
+
+		if resource.DefaultToSkipIfAlreadyInstalled {
+			t.Fatal("The project must not have DefaultToSkipIfAlreadyInstalled enabled")
+		}
+
+		if resource.IsDisabled {
+			t.Fatal("The project must not have IsDisabled enabled")
+		}
+
+		if resource.IsVersionControlled {
+			t.Fatal("The project must not have IsVersionControlled enabled")
+		}
+
+		if resource.TenantedDeploymentMode != "Untenanted" {
+			t.Fatal("The project must be have a TenantedDeploymentMode of \"Untenanted\" (was \"" + resource.TenantedDeploymentMode + "\")")
+		}
+
+		if len(resource.IncludedLibraryVariableSets) != 0 {
+			t.Fatal("The project must not have any library variable sets")
+		}
+
+		if resource.ConnectivityPolicy.AllowDeploymentsToNoTargets {
+			t.Fatal("The project must not have ConnectivityPolicy.AllowDeploymentsToNoTargets enabled")
+		}
+
+		if resource.ConnectivityPolicy.ExcludeUnhealthyTargets {
+			t.Fatal("The project must not have ConnectivityPolicy.AllowDeploymentsToNoTargets enabled")
+		}
+
+		if resource.ConnectivityPolicy.SkipMachineBehavior != "SkipUnavailableMachines" {
+			t.Log("BUG: The project must be have a ConnectivityPolicy.SkipMachineBehavior of \"SkipUnavailableMachines\" (was \"" + resource.ConnectivityPolicy.SkipMachineBehavior + "\") - Known issue where the value returned by /api/Spaces-#/ProjectGroups/ProjectGroups-#/projects is different to /api/Spaces-/Projects")
+		}
+
+		// Verify the environment data lookups work
+		lookup, err := testFramework.GetOutputVariable(t, filepath.Join("terraform", "19a-projectds"), "data_lookup")
+
+		if err != nil {
+			return err
+		}
+
+		if lookup != resource.ID {
+			t.Fatal("The target lookup did not succeed. Lookup value was \"" + lookup + "\" while the resource value was \"" + resource.ID + "\".")
+		}
+
+		return nil
+	})
+}
