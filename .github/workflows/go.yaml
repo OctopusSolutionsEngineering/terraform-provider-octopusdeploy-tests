@@ -80,6 +80,7 @@ jobs:
           ECR_SECRET_KEY: ${{ secrets.ECR_SECRET_KEY }}
           GIT_CREDENTIAL: ${{ secrets.GIT_CREDENTIAL }}
           GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
+          OCTOTESTSKIPINIT: true
       - if: always()
         name: Report
         uses: dorny/test-reporter@v1
