@@ -3042,3 +3042,73 @@ func TestProjectWithScriptActions(t *testing.T) {
 		return nil
 	})
 }
+
+// TestRunbookResource verifies that a runbook can be reimported with the correct settings
+func TestRunbookResource(t *testing.T) {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
+		// Act
+		newSpaceId, err := testFramework.Act(t, container, "./terraform", "46-runbooks", []string{})
+
+		if err != nil {
+			return err
+		}
+
+		//err = testFramework.TerraformInitAndApply(t, container, filepath.Join("./terraform", "19a-projectds"), newSpaceId, []string{})
+		//
+		//if err != nil {
+		//	return err
+		//}
+
+		// Assert
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
+		resources, err := client.Runbooks.GetAll()
+		if err != nil {
+			return err
+		}
+
+		found := false
+		for _, r := range resources {
+			if r.Name == "Runbook" {
+				found = true
+
+				if r.Description != "Test Runbook" {
+					t.Fatal("The runbook must be have a description of \"Test Runbook\" (was \"" + r.Description + "\")")
+				}
+
+				if r.ConnectivityPolicy.AllowDeploymentsToNoTargets {
+					t.Fatal("The runbook must not have ConnectivityPolicy.AllowDeploymentsToNoTargets enabled")
+				}
+
+				if r.ConnectivityPolicy.ExcludeUnhealthyTargets {
+					t.Fatal("The runbook must not have ConnectivityPolicy.AllowDeploymentsToNoTargets enabled")
+				}
+
+				if r.ConnectivityPolicy.SkipMachineBehavior != "SkipUnavailableMachines" {
+					t.Log("BUG: The runbook must be have a ConnectivityPolicy.SkipMachineBehavior of \"SkipUnavailableMachines\" (was \"" + r.ConnectivityPolicy.SkipMachineBehavior + "\") - Known issue where the value returned by /api/Spaces-#/ProjectGroups/ProjectGroups-#/projects is different to /api/Spaces-/Projects")
+				}
+
+				if r.MultiTenancyMode != "Untenanted" {
+					t.Fatal("The runbook must be have a TenantedDeploymentMode of \"Untenanted\" (was \"" + r.MultiTenancyMode + "\")")
+				}
+			}
+		}
+
+		if !found {
+			t.Fatalf("Space must have a runbook called \"Runbook\"")
+		}
+
+		// Verify the environment data lookups work
+		//lookup, err := testFramework.GetOutputVariable(t, filepath.Join("terraform", "19a-projectds"), "data_lookup")
+		//
+		//if err != nil {
+		//	return err
+		//}
+		//
+		//if lookup != resource.ID {
+		//	t.Fatal("The target lookup did not succeed. Lookup value was \"" + lookup + "\" while the resource value was \"" + resource.ID + "\".")
+		//}
+
+		return nil
+	})
+}
