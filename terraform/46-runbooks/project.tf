@@ -45,3 +45,38 @@ resource "octopusdeploy_runbook" "runbook" {
   environments                = []
   default_guided_failure_mode = "EnvironmentDefault"
 }
+
+resource "octopusdeploy_runbook_process" "runbook" {
+  runbook_id = octopusdeploy_runbook.runbook.id
+
+  step {
+    condition           = "Success"
+    name                = "Hello world (using PowerShell)"
+    package_requirement = "LetOctopusDecide"
+    start_trigger       = "StartAfterPrevious"
+
+    action {
+      action_type                        = "Octopus.Script"
+      name                               = "Hello world (using PowerShell)"
+      condition                          = "Success"
+      run_on_server                      = true
+      is_disabled                        = false
+      can_be_used_for_project_versioning = false
+      is_required                        = true
+      worker_pool_id                     = ""
+      properties                         = {
+        "Octopus.Action.Script.ScriptSource" = "Inline"
+        "Octopus.Action.Script.ScriptBody" = "Write-Host 'Hello world, using PowerShell'\n\n#TODO: Experiment with steps of your own :)\n\nWrite-Host '[Learn more about the types of steps available in Octopus](https://oc.to/OnboardingAddStepsLearnMore)'"
+        "Octopus.Action.Script.Syntax" = "PowerShell"
+      }
+      environments                       = []
+      excluded_environments              = []
+      channels                           = []
+      tenant_tags                        = []
+      features                           = []
+    }
+
+    properties   = {}
+    target_roles = []
+  }
+}
