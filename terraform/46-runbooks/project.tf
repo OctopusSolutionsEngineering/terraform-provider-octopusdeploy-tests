@@ -41,6 +41,10 @@ resource "octopusdeploy_runbook" "runbook" {
     exclude_unhealthy_targets       = false
     skip_machine_behavior           = "SkipUnavailableMachines"
   }
+  retention_policy {
+    quantity_to_keep = 10
+    should_keep_forever = false
+  }
   environment_scope           = "Specified"
   environments                = [octopusdeploy_environment.development_environment.id]
   default_guided_failure_mode = "EnvironmentDefault"
@@ -91,9 +95,13 @@ resource "octopusdeploy_runbook" "runbook2" {
     exclude_unhealthy_targets       = false
     skip_machine_behavior           = "SkipUnavailableMachines"
   }
+  retention_policy {
+    quantity_to_keep = 0
+    should_keep_forever = true
+  }
   environment_scope           = "All"
   environments                = []
-  default_guided_failure_mode = "EnvironmentDefault"
+  default_guided_failure_mode = "On"
 }
 
 resource "octopusdeploy_runbook" "runbook3" {
@@ -102,11 +110,15 @@ resource "octopusdeploy_runbook" "runbook3" {
   description        = "Test Runbook 3"
   multi_tenancy_mode = "TenantedOrUntenanted"
   connectivity_policy {
-    allow_deployments_to_no_targets = false
-    exclude_unhealthy_targets       = false
-    skip_machine_behavior           = "SkipUnavailableMachines"
+    allow_deployments_to_no_targets = true
+    exclude_unhealthy_targets       = true
+    skip_machine_behavior           = "None"
+  }
+  retention_policy {
+    quantity_to_keep = 10
+    should_keep_forever = true
   }
   environment_scope           = "FromProjectLifecycles"
   environments                = []
-  default_guided_failure_mode = "EnvironmentDefault"
+  default_guided_failure_mode = "Off"
 }
