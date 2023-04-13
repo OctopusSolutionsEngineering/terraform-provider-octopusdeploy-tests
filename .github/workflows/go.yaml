@@ -57,6 +57,7 @@ jobs:
       - name: Checkout the same branch as this test
         run: git switch ${GITHUB_REF##*/}
         shell: bash
+        working-directory: terraform-provider-octopusdeploy
       - name: Build the Terraform provider from source
         run: go build -o terraform-provider-octopusdeploy
         working-directory: terraform-provider-octopusdeploy
