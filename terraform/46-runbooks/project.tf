@@ -85,7 +85,7 @@ resource "octopusdeploy_runbook" "runbook2" {
   project_id         = octopusdeploy_project.deploy_frontend_project.id
   name               = "Runbook 2"
   description        = "Test Runbook 2"
-  multi_tenancy_mode = "Untenanted"
+  multi_tenancy_mode = "Tenanted"
   connectivity_policy {
     allow_deployments_to_no_targets = false
     exclude_unhealthy_targets       = false
@@ -100,7 +100,7 @@ resource "octopusdeploy_runbook" "runbook3" {
   project_id         = octopusdeploy_project.deploy_frontend_project.id
   name               = "Runbook 3"
   description        = "Test Runbook 3"
-  multi_tenancy_mode = "Untenanted"
+  multi_tenancy_mode = "TenantedOrUntenanted"
   connectivity_policy {
     allow_deployments_to_no_targets = false
     exclude_unhealthy_targets       = false
