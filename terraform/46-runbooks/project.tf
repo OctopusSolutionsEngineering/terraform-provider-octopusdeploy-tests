@@ -48,6 +48,7 @@ resource "octopusdeploy_runbook" "runbook" {
   environment_scope           = "Specified"
   environments                = [octopusdeploy_environment.development_environment.id]
   default_guided_failure_mode = "EnvironmentDefault"
+  force_package_download      = true
 }
 
 resource "octopusdeploy_runbook_process" "runbook" {
@@ -102,6 +103,7 @@ resource "octopusdeploy_runbook" "runbook2" {
   environment_scope           = "All"
   environments                = []
   default_guided_failure_mode = "On"
+  force_package_download      = false
 }
 
 resource "octopusdeploy_runbook" "runbook3" {
