@@ -42,7 +42,7 @@ resource "octopusdeploy_runbook" "runbook" {
     skip_machine_behavior           = "SkipUnavailableMachines"
   }
   retention_policy {
-    quantity_to_keep = 10
+    quantity_to_keep    = 10
     should_keep_forever = false
   }
   environment_scope           = "Specified"
@@ -70,14 +70,14 @@ resource "octopusdeploy_runbook_process" "runbook" {
       worker_pool_id                     = ""
       properties                         = {
         "Octopus.Action.Script.ScriptSource" = "Inline"
-        "Octopus.Action.Script.ScriptBody" = "Write-Host 'Hello world, using PowerShell'\n\n#TODO: Experiment with steps of your own :)\n\nWrite-Host '[Learn more about the types of steps available in Octopus](https://oc.to/OnboardingAddStepsLearnMore)'"
-        "Octopus.Action.Script.Syntax" = "PowerShell"
+        "Octopus.Action.Script.ScriptBody"   = "Write-Host 'Hello world, using PowerShell'\n\n#TODO: Experiment with steps of your own :)\n\nWrite-Host '[Learn more about the types of steps available in Octopus](https://oc.to/OnboardingAddStepsLearnMore)'"
+        "Octopus.Action.Script.Syntax"       = "PowerShell"
       }
-      environments                       = []
-      excluded_environments              = []
-      channels                           = []
-      tenant_tags                        = []
-      features                           = []
+      environments          = []
+      excluded_environments = []
+      channels              = []
+      tenant_tags           = []
+      features              = []
     }
 
     properties   = {}
@@ -96,7 +96,7 @@ resource "octopusdeploy_runbook" "runbook2" {
     skip_machine_behavior           = "SkipUnavailableMachines"
   }
   retention_policy {
-    quantity_to_keep = 0
+    quantity_to_keep    = 0
     should_keep_forever = true
   }
   environment_scope           = "All"
@@ -115,7 +115,7 @@ resource "octopusdeploy_runbook" "runbook3" {
     skip_machine_behavior           = "None"
   }
   retention_policy {
-    quantity_to_keep = 10
+    quantity_to_keep    = 10
     should_keep_forever = true
   }
   environment_scope           = "FromProjectLifecycles"
