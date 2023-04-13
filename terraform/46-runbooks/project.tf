@@ -1,9 +1,3 @@
-data "octopusdeploy_environments" "data_lookup" {
-  partial_name = "Development"
-  skip         = 0
-  take         = 1
-}
-
 data "octopusdeploy_lifecycles" "lifecycle_default_lifecycle" {
   ids          = null
   partial_name = "Default Lifecycle"
@@ -48,7 +42,7 @@ resource "octopusdeploy_runbook" "runbook" {
     skip_machine_behavior           = "SkipUnavailableMachines"
   }
   environment_scope           = "Specified"
-  environments                = [data.octopusdeploy_environments.data_lookup.environments[0].id]
+  environments                = [octopusdeploy_environment.development_environment.id]
   default_guided_failure_mode = "EnvironmentDefault"
 }
 
