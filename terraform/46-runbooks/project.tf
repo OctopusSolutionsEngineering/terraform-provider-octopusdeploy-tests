@@ -124,3 +124,8 @@ resource "octopusdeploy_runbook" "runbook3" {
   environments                = []
   default_guided_failure_mode = "Off"
 }
+
+resource "octopusdeploy_runbook" "runbook4" {
+  project_id         = octopusdeploy_project.deploy_frontend_project.id
+  name               = "Runbook 4"
+}
