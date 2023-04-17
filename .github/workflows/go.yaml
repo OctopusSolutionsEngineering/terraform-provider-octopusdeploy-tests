@@ -77,6 +77,7 @@ jobs:
           GIT_CREDENTIAL: ${{ secrets.GIT_CREDENTIAL }}
           GIT_USERNAME: ${{ secrets.GIT_USERNAME }}
           OCTODISABLEOCTOCONTAINERLOGGING: true
+          OCTOTESTSKIPINIT: true
       - if: always()
         name: Report
         uses: dorny/test-reporter@v1
