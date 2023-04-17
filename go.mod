@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/OctopusDeploy/go-octopusdeploy/v2 v2.21.0
-	github.com/mcasperson/OctopusTerraformTestFramework v0.0.0-20230406002831-ea93fbec0b57
+	github.com/mcasperson/OctopusTerraformTestFramework v0.0.0-20230417021236-60777d52506c
 	k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b
 )
 

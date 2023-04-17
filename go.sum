@@ -81,6 +81,8 @@ github.com/mcasperson/OctopusTerraformTestFramework v0.0.0-20230406001626-4a7753
 github.com/mcasperson/OctopusTerraformTestFramework v0.0.0-20230406001626-4a77539df8d8/go.mod h1:k6LkAcykjgqJYo9vVyfD7X96E85aAVrLlljtKMr27wU=
 github.com/mcasperson/OctopusTerraformTestFramework v0.0.0-20230406002831-ea93fbec0b57 h1:MPUxK8kbq1nbMSRr6bUorKCNnZivbWoaKbbzKIbbZRM=
 github.com/mcasperson/OctopusTerraformTestFramework v0.0.0-20230406002831-ea93fbec0b57/go.mod h1:k6LkAcykjgqJYo9vVyfD7X96E85aAVrLlljtKMr27wU=
+github.com/mcasperson/OctopusTerraformTestFramework v0.0.0-20230417021236-60777d52506c h1:l69lnswDApx0taqZn9O+xaG5bajh1JmQ7833XvwRJ/g=
+github.com/mcasperson/OctopusTerraformTestFramework v0.0.0-20230417021236-60777d52506c/go.mod h1:k6LkAcykjgqJYo9vVyfD7X96E85aAVrLlljtKMr27wU=
 github.com/moby/patternmatcher v0.5.0 h1:YCZgJOeULcxLw1Q+sVR636pmS7sPEn1Qo2iAN6M7DBo=
 github.com/moby/patternmatcher v0.5.0/go.mod h1:hDPoyOpDY7OrrMDLaYoY3hf52gNCR/YOUYxkhApJIxc=
 github.com/moby/sys/mountinfo v0.5.0/go.mod h1:3bMD3Rg+zkqx8MRYPi7Pyb0Ie97QEBmdxbhnCLlSvSU=
