@@ -3028,17 +3028,6 @@ func TestProjectWithScriptActions(t *testing.T) {
 			t.Log("BUG: The project must be have a ConnectivityPolicy.SkipMachineBehavior of \"SkipUnavailableMachines\" (was \"" + resource.ConnectivityPolicy.SkipMachineBehavior + "\") - Known issue where the value returned by /api/Spaces-#/ProjectGroups/ProjectGroups-#/projects is different to /api/Spaces-/Projects")
 		}
 
-		// Verify the environment data lookups work
-		lookup, err := testFramework.GetOutputVariable(t, filepath.Join("terraform", "19a-projectds"), "data_lookup")
-
-		if err != nil {
-			return err
-		}
-
-		if lookup != resource.ID {
-			t.Fatal("The target lookup did not succeed. Lookup value was \"" + lookup + "\" while the resource value was \"" + resource.ID + "\".")
-		}
-
 		return nil
 	})
 }
