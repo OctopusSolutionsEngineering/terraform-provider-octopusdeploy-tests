@@ -74,7 +74,7 @@ resource "octopusdeploy_runbook_process" "runbook" {
         "Octopus.Action.Script.ScriptBody"   = "Write-Host 'Hello world, using PowerShell'\n\n#TODO: Experiment with steps of your own :)\n\nWrite-Host '[Learn more about the types of steps available in Octopus](https://oc.to/OnboardingAddStepsLearnMore)'"
         "Octopus.Action.Script.Syntax"       = "PowerShell"
       }
-      environments          = []
+      environments          = [octopusdeploy_environment.development_environment.id]
       excluded_environments = []
       channels              = []
       tenant_tags           = []

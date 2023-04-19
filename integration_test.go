@@ -3054,7 +3054,7 @@ func TestRunbookResource(t *testing.T) {
 			return err
 		}
 
-		//err = testFramework.TerraformInitAndApply(t, container, filepath.Join("./terraform", "19a-projectds"), newSpaceId, []string{})
+		//err = testFramework.TerraformInitAndApply(t, container, filepath.Join("./terraform", "46a-runbooks"), newSpaceId, []string{})
 		//
 		//if err != nil {
 		//	return err
@@ -3091,6 +3091,18 @@ func TestRunbookResource(t *testing.T) {
 				if r.MultiTenancyMode != "Untenanted" {
 					t.Fatal("The runbook must be have a TenantedDeploymentMode of \"Untenanted\" (was \"" + r.MultiTenancyMode + "\")")
 				}
+
+				if r.EnvironmentScope != "Specified" {
+					t.Fatal("The runbook must be have a EnvironmentScope of \"Specified\" (was \"" + r.EnvironmentScope + "\")")
+				}
+
+				if len(r.Environments) != 1 {
+					t.Fatal("The runbook must be have a Environments array of 1 (was \"" + strings.Join(r.Environments, ", ") + "\")")
+				}
+
+				if r.DefaultGuidedFailureMode != "EnvironmentDefault" {
+					t.Fatal("The runbook must be have a DefaultGuidedFailureMode of \"EnvironmentDefault\" (was \"" + r.DefaultGuidedFailureMode + "\")")
+				}
 			}
 		}
 
@@ -3099,7 +3111,7 @@ func TestRunbookResource(t *testing.T) {
 		}
 
 		// Verify the environment data lookups work
-		//lookup, err := testFramework.GetOutputVariable(t, filepath.Join("terraform", "19a-projectds"), "data_lookup")
+		//lookup, err := testFramework.GetOutputVariable(t, filepath.Join("terraform", "46a-runbooks"), "data_lookup")
 		//
 		//if err != nil {
 		//	return err
