@@ -43,7 +43,6 @@ resource "octopusdeploy_runbook" "runbook" {
   }
   retention_policy {
     quantity_to_keep    = 10
-    should_keep_forever = false
   }
   environment_scope           = "Specified"
   environments                = [octopusdeploy_environment.development_environment.id]
@@ -97,7 +96,6 @@ resource "octopusdeploy_runbook" "runbook2" {
     skip_machine_behavior           = "SkipUnavailableMachines"
   }
   retention_policy {
-    quantity_to_keep    = 0
     should_keep_forever = true
   }
   environment_scope           = "All"
@@ -117,7 +115,6 @@ resource "octopusdeploy_runbook" "runbook3" {
     skip_machine_behavior           = "None"
   }
   retention_policy {
-    quantity_to_keep    = 10
     should_keep_forever = true
   }
   environment_scope           = "FromProjectLifecycles"
