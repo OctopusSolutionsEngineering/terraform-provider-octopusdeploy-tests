@@ -3088,6 +3088,18 @@ func TestRunbookResource(t *testing.T) {
 					t.Log("BUG: The runbook must be have a ConnectivityPolicy.SkipMachineBehavior of \"SkipUnavailableMachines\" (was \"" + r.ConnectivityPolicy.SkipMachineBehavior + "\") - Known issue where the value returned by /api/Spaces-#/ProjectGroups/ProjectGroups-#/projects is different to /api/Spaces-/Projects")
 				}
 
+				if r.RunRetentionPolicy.QuantityToKeep != 10 {
+					t.Fatal("The runbook must not have RunRetentionPolicy.QuantityToKeep of 10 (was \"" + fmt.Sprint(r.RunRetentionPolicy.QuantityToKeep) + "\")")
+				}
+
+				if r.RunRetentionPolicy.ShouldKeepForever {
+					t.Fatal("The runbook must not have RunRetentionPolicy.ShouldKeepForever of false (was \"" + fmt.Sprint(r.RunRetentionPolicy.ShouldKeepForever) + "\")")
+				}
+
+				if r.ConnectivityPolicy.SkipMachineBehavior != "SkipUnavailableMachines" {
+					t.Log("BUG: The runbook must be have a ConnectivityPolicy.SkipMachineBehavior of \"SkipUnavailableMachines\" (was \"" + r.ConnectivityPolicy.SkipMachineBehavior + "\") - Known issue where the value returned by /api/Spaces-#/ProjectGroups/ProjectGroups-#/projects is different to /api/Spaces-/Projects")
+				}
+
 				if r.MultiTenancyMode != "Untenanted" {
 					t.Fatal("The runbook must be have a TenantedDeploymentMode of \"Untenanted\" (was \"" + r.MultiTenancyMode + "\")")
 				}
@@ -3102,6 +3114,20 @@ func TestRunbookResource(t *testing.T) {
 
 				if r.DefaultGuidedFailureMode != "EnvironmentDefault" {
 					t.Fatal("The runbook must be have a DefaultGuidedFailureMode of \"EnvironmentDefault\" (was \"" + r.DefaultGuidedFailureMode + "\")")
+				}
+
+				if !r.ForcePackageDownload {
+					t.Log("BUG: The runbook must be have a ForcePackageDownload of \"true\" (was \"" + fmt.Sprint(r.ForcePackageDownload) + "\")")
+				}
+
+				process, err := client.RunbookProcesses.GetByID(r.RunbookProcessID)
+
+				if err != nil {
+					t.Fatal("Failed to retrieve the runbook process.")
+				}
+
+				if len(process.Steps) != 1 {
+					t.Fatal("The runbook must be have a 1 step")
 				}
 			}
 		}
