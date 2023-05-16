@@ -3101,3 +3101,44 @@ func TestRunbookResource(t *testing.T) {
 		return nil
 	})
 }
+
+// TestK8sTargetResource verifies that a k8s machine can be reimported with the correct settings
+func TestK8sTargetWithCertResource(t *testing.T) {
+	testFramework := test.OctopusContainerTest{}
+	testFramework.ArrangeTest(t, func(t *testing.T, container *test.OctopusContainer, spaceClient *client.Client) error {
+		// Act
+		newSpaceId, err := testFramework.Act(t, container, "./terraform", "47-k8stargetwithcert", []string{})
+
+		if err != nil {
+			return err
+		}
+
+		// Assert
+		client, err := octoclient.CreateClient(container.URI, newSpaceId, test.ApiKey)
+		query := machines.MachinesQuery{
+			PartialName: "Test",
+			Skip:        0,
+			Take:        1,
+		}
+
+		resources, err := client.Machines.Get(query)
+		if err != nil {
+			return err
+		}
+
+		if len(resources.Items) == 0 {
+			t.Fatalf("Space must have a machine called \"Test\"")
+		}
+		resource := resources.Items[0]
+
+		if fmt.Sprint(resource.Endpoint.(*machines.KubernetesEndpoint).ClusterURL) != "https://cluster" {
+			t.Fatal("The machine must have a Endpoint.ClusterUrl of \"https://cluster\" (was \"" + fmt.Sprint(resource.Endpoint.(*machines.KubernetesEndpoint).ClusterURL) + "\")")
+		}
+
+		if fmt.Sprint(resource.Endpoint.(*machines.KubernetesEndpoint).Authentication.GetAuthenticationType()) != "KubernetesCertificate" {
+			t.Fatal("The machine must have a Endpoint.AuthenticationType of \"KubernetesCertificate\" (was \"" + fmt.Sprint(resource.Endpoint.(*machines.KubernetesEndpoint).Authentication.GetAuthenticationType()) + "\")")
+		}
+
+		return nil
+	})
+}
