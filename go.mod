@@ -3,7 +3,7 @@ module github.com/mcasperson/terraform-provider-octopusdeploy-tests
 go 1.20
 
 require (
-	github.com/OctopusDeploy/go-octopusdeploy/v2 v2.21.0
+	github.com/OctopusDeploy/go-octopusdeploy/v2 v2.24.0
 	github.com/mcasperson/OctopusTerraformTestFramework v0.0.0-20230417081345-fe8c660438ba
 	k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b
 )
